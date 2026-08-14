@@ -53,4 +53,4 @@
 - [x] Inspecionar o ZIP de interface enviado e confirmar os arquivos que serão substituídos sem alterações de conteúdo.
 - [x] Substituir fielmente os arquivos de `client/src` pelo pacote de interface fornecido pelo usuário.
 - [x] Validar tipagem, testes, build e visualização da interface recebida sem modificá-la.
-- [ ] Salvar checkpoint e sincronizar no GitHub a interface fornecida pelo usuário.
+- [x] Salvar checkpoint e sincronizar no GitHub a interface fornecida pelo usuário.
