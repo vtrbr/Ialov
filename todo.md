@@ -1,6 +1,6 @@
 # Project TODO
 
-- [ ] Sincronizar a base de trabalho do Lunex 1.2 com o repositório GitHub `vtrbr/Ialov` sem versionar segredos.
+- [x] Sincronizar a base de trabalho do Lunex 1.2 com o repositório GitHub `vtrbr/Ialov` sem versionar segredos.
 - [x] Documentar arquitetura do produto, contratos de integração e as limitações de execução do MVP.
 - [x] Criar esquema relacional compatível com futura projeção para Firebase/Firestore: projetos, conversas, mensagens, artefatos, versões, execuções e configurações de provedor.
 - [x] Aplicar a migração do banco e criar procedimentos tRPC tipados para projetos, conversas, artefatos, checkpoints e preferências.
@@ -28,7 +28,7 @@
 - [x] Validar vínculo de projeto e conversa antes de criar uma execução do agente.
 - [x] Validar propriedade da execução e projeto antes de gravar eventos de uma execução.
 - [x] Verificar build, testes, responsividade em desktop e mobile, acessibilidade básica e falhas de console.
-- [ ] Criar checkpoint da entrega completa e enviar código final para `vtrbr/Ialov`.
+- [ ] Criar checkpoint da entrega completa.
 - [x] Entregar documento com variáveis obrigatórias, configuração do Firebase e regras seguras do Firestore.
 - [x] Executar auditoria verificável de acessibilidade básica para landmarks, navegação por teclado, foco, rótulos e contraste da interface principal e do workspace.
 - [x] Corrigir o erro de runtime de importação de `server/routers/agent` e revalidar o console do navegador sem falhas.
