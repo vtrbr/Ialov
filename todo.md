@@ -28,7 +28,7 @@
 - [x] Validar vínculo de projeto e conversa antes de criar uma execução do agente.
 - [x] Validar propriedade da execução e projeto antes de gravar eventos de uma execução.
 - [x] Verificar build, testes, responsividade em desktop e mobile, acessibilidade básica e falhas de console.
-- [x] Criar checkpoint da entrega completa.
+- [ ] Criar checkpoint da entrega completa.
 - [x] Entregar documento com variáveis obrigatórias, configuração do Firebase e regras seguras do Firestore.
 - [x] Executar auditoria verificável de acessibilidade básica para landmarks, navegação por teclado, foco, rótulos e contraste da interface principal e do workspace.
 - [x] Corrigir o erro de runtime de importação de `server/routers/agent` e revalidar o console do navegador sem falhas.
@@ -40,3 +40,13 @@
 - [x] Criar e validar uma área de terminal dedicada na composição desktop do estúdio.
 - [x] Revalidar o console em nova sessão após o reinício, confirmando que não há erro de importação do roteador do agente.
 - [x] Validar por código e teste o fluxo editor → preview dentro de `ArtifactWorkspace`.
+- [x] Redesenhar a interface principal para uma composição leve inspirada no Claude, com conversa como foco e navegação discreta.
+- [x] Simplificar a barra lateral, cabeçalho, composer e tipografia, removendo ornamentos que não contribuem para a tarefa.
+- [x] Reorganizar artefatos, preview, terminal e configurações em painéis contextuais que não concorram com o chat.
+- [x] Ajustar a experiência mobile para navegação clara e mínima entre conversa, artefato e preview.
+- [x] Reduzir peso de componentes e validar compilação, testes e capturas desktop/mobile da nova interface.
+- [ ] Sincronizar a reformulação de interface no repositório GitHub e salvar um novo checkpoint.
+- [ ] Confirmar commit e push bem-sucedidos da reformulação no repositório `vtrbr/Ialov`.
+- [ ] Atualizar o `todo.md` também no repositório sincronizado após concluir o push.
+- [x] Otimizar o cliente com carregamento sob demanda do workspace de artefatos e painéis contextuais, preservando a funcionalidade.
+- [x] Registrar evidência verificável da redução de peso do bundle antes de concluir a revisão de leveza.
