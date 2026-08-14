@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { canLinkFirebaseIdentity, getFirebaseCompatibility } from "./firebaseCompat";
+import { canLinkFirebaseIdentity, getFirebaseCompatibility, getFirebaseServerCompatibility } from "./firebaseCompat";
 
 describe("firebase compatibility", () => {
   it("não habilita a ponte sem projeto e credenciais administrativas", () => {
     expect(getFirebaseCompatibility()).toEqual({ enabled: false, reason: "missing_project_id" });
     expect(getFirebaseCompatibility("lunex-dev")).toEqual({ enabled: false, reason: "missing_admin_credentials" });
     expect(getFirebaseCompatibility("lunex-dev", "{\"type\":\"service_account\"}")).toEqual({ enabled: true });
+  });
+
+  it("deriva o status do servidor sem devolver dados de credencial", () => {
+    expect(getFirebaseServerCompatibility({ projectId: "lunex-dev" })).toEqual({ enabled: false, reason: "missing_admin_credentials" });
+    expect(getFirebaseServerCompatibility({ projectId: "lunex-dev", clientEmail: "admin@lunex-dev.iam.gserviceaccount.com", privateKey: "secret-private-key" })).toEqual({ enabled: true });
   });
 
   it("aceita vínculo somente para UID novo e e-mail compatível", () => {

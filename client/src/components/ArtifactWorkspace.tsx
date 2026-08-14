@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Clock3, Code2, Eye, GitCompareArrows, RotateCcw, Save } from "lucide-react";
 import { ArtifactPreview } from "./ArtifactPreview";
+import { ExportMenu } from "./ExportMenu";
 import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import type { ExportFormat } from "@/lib/exportDownload";
 
 type Artifact = {
   id: string;
@@ -30,6 +32,8 @@ export function ArtifactWorkspace({
   onActiveTabChange,
   onSave,
   onRestore,
+  onExport,
+  exporting = false,
 }: {
   artifact?: Artifact;
   versions?: Version[];
@@ -39,6 +43,8 @@ export function ArtifactWorkspace({
   onActiveTabChange?: (tab: "code" | "preview" | "changes" | "history") => void;
   onSave?: (content: string) => void;
   onRestore?: (version: number) => void;
+  onExport?: (format: ExportFormat) => void;
+  exporting?: boolean;
 }) {
   const [draft, setDraft] = useState(artifact?.content || "");
   const [internalTab, setInternalTab] = useState<"code" | "preview" | "changes" | "history">("code");
@@ -58,6 +64,7 @@ export function ArtifactWorkspace({
         <div className="min-w-0"><p className="truncate text-sm font-medium text-foreground">{artifact.title}</p><p className="truncate text-[11px] text-muted-foreground">{label} · v{artifact.version}</p></div>
         <div className="ml-auto flex items-center gap-2">
           {dirty && <span className="hidden text-[11px] text-muted-foreground sm:inline">Não salvo</span>}
+          {onExport && <ExportMenu onExport={onExport} pending={exporting} subject="artefato" />}
           <Button size="sm" variant="outline" disabled={!dirty || saving} onClick={() => onSave?.(draft)} className="h-7 gap-1.5 text-xs"><Save className="h-3.5 w-3.5" />Salvar</Button>
         </div>
       </header>

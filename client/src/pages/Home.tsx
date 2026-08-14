@@ -1,7 +1,9 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { ArtifactWorkspace } from "@/components/ArtifactWorkspace";
+import { ExportMenu } from "@/components/ExportMenu";
 import { LunexBrand, LunexSplash } from "@/components/LunexBrand";
 import { MarkdownMessage } from "@/components/MarkdownMessage";
+import { SetupAssistant } from "@/components/SetupAssistant";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,6 +13,7 @@ import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { extractSseEvents } from "@/lib/agentStream";
+import { downloadMarkdown, downloadPdf, type ExportFormat } from "@/lib/exportDownload";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bot, ChevronDown, FileCode2, FolderPlus, Loader2, Menu, MessageSquarePlus, Plus, Send, Settings2, TerminalSquare, UserRound } from "lucide-react";
 import { toast } from "sonner";
@@ -59,7 +62,7 @@ function ProjectsRail({ projects, selectedId, onSelect, onCreate, onSettings }: 
   );
 }
 
-function SettingsPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function SettingsPanel({ open, onOpenChange, onOpenAssistant }: { open: boolean; onOpenChange: (open: boolean) => void; onOpenAssistant: () => void }) {
   const utils = trpc.useUtils();
   const providers = trpc.agent.providers.list.useQuery(undefined, { enabled: open });
   const preferences = trpc.studio.preferences.get.useQuery(undefined, { enabled: open });
@@ -84,6 +87,7 @@ function SettingsPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (o
         <div className="border-b border-border px-5 py-4">
           <p className="text-sm font-medium">Configurações do estúdio</p>
           <p className="mt-1 text-xs text-muted-foreground">As chaves são cifradas no servidor e jamais retornam para o navegador.</p>
+          <Button variant="outline" size="sm" onClick={onOpenAssistant} className="mt-3 h-8 text-xs">Abrir assistente de configuração</Button>
         </div>
         <div className="space-y-7 p-5">
           <section>
@@ -188,7 +192,7 @@ function SettingsPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (o
 }
 
 export default function Home() {
-  const { loading, isAuthenticated } = useAuth();
+  const { loading, isAuthenticated, user } = useAuth();
   const utils = trpc.useUtils();
   const [selectedProjectId, setSelectedProjectId] = useState<string>();
   const [selectedConversationId, setSelectedConversationId] = useState<string>();
@@ -198,27 +202,50 @@ export default function Home() {
   const [running, setRunning] = useState(false);
   const [mobileView, setMobileView] = useState<"chat" | "code" | "preview">("chat");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
   const bootstrapped = useRef(false);
+  const setupPrompted = useRef(false);
   const projects = trpc.studio.projects.list.useQuery(undefined, { enabled: isAuthenticated });
   const createProject = trpc.studio.projects.create.useMutation({ onSuccess: project => { utils.studio.projects.list.invalidate(); if (project) setSelectedProjectId(project.id); }, onError: () => toast.error("Não foi possível criar o projeto.") });
   const conversations = trpc.studio.conversations.list.useQuery({ projectId: selectedProjectId || "project-pending" }, { enabled: Boolean(selectedProjectId) });
   const createConversation = trpc.studio.conversations.create.useMutation({ onSuccess: conversation => { if (selectedProjectId) utils.studio.conversations.list.invalidate({ projectId: selectedProjectId }); if (conversation) setSelectedConversationId(conversation.id); } });
   const persistedMessages = trpc.studio.conversations.messages.useQuery({ conversationId: selectedConversationId || "conversation-pending" }, { enabled: Boolean(selectedConversationId) });
   const artifacts = trpc.studio.artifacts.list.useQuery({ projectId: selectedProjectId || "project-pending" }, { enabled: Boolean(selectedProjectId) });
+  const initialProviders = trpc.agent.providers.list.useQuery(undefined, { enabled: isAuthenticated && user?.role === "admin" });
   const selectedArtifact = artifacts.data?.find(item => item.id === selectedArtifactId) || artifacts.data?.[0];
   const versions = trpc.studio.artifacts.versions.useQuery({ artifactId: selectedArtifact?.id || "artifact-pending" }, { enabled: Boolean(selectedArtifact) });
   const diff = trpc.studio.artifacts.diff.useQuery({ artifactId: selectedArtifact?.id || "artifact-pending", beforeVersion: versions.data?.[1]?.version || 1, afterVersion: versions.data?.[0]?.version || 1 }, { enabled: Boolean(selectedArtifact && versions.data && versions.data.length > 1) });
   const updateArtifact = trpc.studio.artifacts.update.useMutation({ onSuccess: () => { if (selectedProjectId) utils.studio.artifacts.list.invalidate({ projectId: selectedProjectId }); if (selectedArtifact) utils.studio.artifacts.versions.invalidate({ artifactId: selectedArtifact.id }); toast.success("Checkpoint do artefato criado."); }, onError: () => toast.error("Não foi possível salvar este artefato.") });
   const restoreArtifact = trpc.studio.artifacts.restore.useMutation({ onSuccess: () => { if (selectedProjectId) utils.studio.artifacts.list.invalidate({ projectId: selectedProjectId }); if (selectedArtifact) utils.studio.artifacts.versions.invalidate({ artifactId: selectedArtifact.id }); toast.success("Versão restaurada."); } });
+  const exportConversation = trpc.studio.exports.conversation.useMutation();
+  const exportArtifact = trpc.studio.exports.artifact.useMutation();
 
   useEffect(() => { if (projects.data?.length && !selectedProjectId) setSelectedProjectId(projects.data[0].id); }, [projects.data, selectedProjectId]);
   useEffect(() => { if (!isAuthenticated || projects.isLoading || projects.data?.length || bootstrapped.current) return; bootstrapped.current = true; createProject.mutate({ name: "Meu primeiro projeto", description: "Espaço inicial", template: "blank" }); }, [isAuthenticated, projects.isLoading, projects.data, createProject]);
   useEffect(() => { if (conversations.data?.length && !selectedConversationId) setSelectedConversationId(conversations.data[0].id); if (selectedProjectId && conversations.data && !conversations.data.length && !createConversation.isPending) createConversation.mutate({ projectId: selectedProjectId, title: "Nova conversa" }); }, [conversations.data, selectedConversationId, selectedProjectId, createConversation]);
+  useEffect(() => { if (setupPrompted.current || !initialProviders.isSuccess || initialProviders.data.some(provider => provider.enabled)) return; setupPrompted.current = true; setSetupOpen(true); }, [initialProviders.data, initialProviders.isSuccess]);
   useEffect(() => { setSelectedArtifactId(artifacts.data?.[0]?.id); }, [selectedProjectId, artifacts.data]);
   useEffect(() => { setLiveMessages([]); }, [selectedConversationId]);
   const displayMessages = useMemo<LiveMessage[]>(() => [...(persistedMessages.data || []).map((message): LiveMessage => ({ id: message.id, role: message.role as LiveMessage["role"], content: message.content })), ...liveMessages], [persistedMessages.data, liveMessages]);
   const terminalEvents = useMemo(() => displayMessages.filter(message => message.role === "tool"), [displayMessages]);
   const createNewProject = () => { const name = window.prompt("Nome do novo projeto", "Novo projeto"); if (name?.trim()) createProject.mutate({ name: name.trim(), template: "blank" }); };
+  const saveExport = async (payload: { title: string; markdown: string; fileName: string }, format: ExportFormat) => {
+    try {
+      if (format === "markdown") downloadMarkdown(payload.markdown, payload.fileName);
+      else await downloadPdf(payload.markdown, payload.fileName.replace(/\.md$/i, ".pdf"), payload.title);
+      toast.success(`Download em ${format === "pdf" ? "PDF" : "Markdown"} iniciado.`);
+    } catch {
+      toast.error("Não foi possível preparar o arquivo para download.");
+    }
+  };
+  const exportSelectedConversation = (format: ExportFormat) => {
+    if (!selectedConversationId) return;
+    exportConversation.mutate({ conversationId: selectedConversationId }, { onSuccess: payload => void saveExport(payload, format), onError: () => toast.error("Não foi possível exportar esta conversa.") });
+  };
+  const exportSelectedArtifact = (format: ExportFormat) => {
+    if (!selectedArtifact) return;
+    exportArtifact.mutate({ artifactId: selectedArtifact.id, includeHistory: true }, { onSuccess: payload => void saveExport(payload, format), onError: () => toast.error("Não foi possível exportar este artefato.") });
+  };
   const sendPrompt = async () => {
     const content = prompt.trim(); if (!content || !selectedProjectId || !selectedConversationId || running) return;
     setPrompt(""); setRunning(true); const assistantId = `local-assistant-${Date.now()}`;
@@ -251,7 +278,8 @@ export default function Home() {
 
   return (
     <main className="h-screen overflow-hidden bg-background text-foreground">
-      <SettingsPanel open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <SettingsPanel open={settingsOpen} onOpenChange={setSettingsOpen} onOpenAssistant={() => { setSettingsOpen(false); setSetupOpen(true); }} />
+      <SetupAssistant open={setupOpen} onOpenChange={setSetupOpen} />
       <div className="flex h-full">
         <div className="hidden lg:block">{rail}</div>
 
@@ -266,6 +294,7 @@ export default function Home() {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-foreground">{projects.data?.find(project => project.id === selectedProjectId)?.name || "Carregando projeto…"}</p>
             </div>
+            <ExportMenu onExport={exportSelectedConversation} disabled={!selectedConversationId} pending={exportConversation.isPending} subject="conversa" />
             <Button variant="ghost" size="icon" onClick={() => selectedProjectId && createConversation.mutate({ projectId: selectedProjectId, title: "Nova conversa" })} className="h-8 w-8 text-muted-foreground">
               <MessageSquarePlus className="h-4 w-4" />
             </Button>
@@ -360,6 +389,8 @@ export default function Home() {
                 saving={updateArtifact.isPending || restoreArtifact.isPending}
                 onSave={content => selectedArtifact && updateArtifact.mutate({ artifactId: selectedArtifact.id, content, summary: "Edição manual" })}
                 onRestore={version => selectedArtifact && restoreArtifact.mutate({ artifactId: selectedArtifact.id, version })}
+                onExport={exportSelectedArtifact}
+                exporting={exportArtifact.isPending}
               />
             </div>
 

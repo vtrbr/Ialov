@@ -54,3 +54,8 @@
 - [x] Substituir fielmente os arquivos de `client/src` pelo pacote de interface fornecido pelo usuário.
 - [x] Validar tipagem, testes, build e visualização da interface recebida sem modificá-la.
 - [x] Salvar checkpoint e sincronizar no GitHub a interface fornecida pelo usuário.
+- [x] Criar assistente visual de configuração inicial para guiar o cadastro seguro das quatro chaves de texto, chave de imagem e Firebase.
+- [x] Implementar exportação autorizada de conversas e artefatos em Markdown e PDF, sem expor segredos ou dados de outros usuários.
+- [ ] Cobrir o onboarding e as exportações com testes, validações visuais e sincronização no GitHub.
+- [x] Conectar o assistente a um status real e seguro de compatibilidade Firebase no backend, sem expor credenciais administrativas.
+- [x] Adicionar feedback de carregamento e erro às consultas de provedores e preferências do assistente inicial.

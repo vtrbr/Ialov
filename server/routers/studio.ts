@@ -2,6 +2,9 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "../db";
 import { applyTextPatches, lineDiff } from "../artifacts/diff";
+import { createArtifactMarkdown, createConversationMarkdown, exportFileName } from "../exports/markdown";
+import { getFirebaseServerCompatibility } from "../auth/firebaseCompat";
+import { ENV } from "../_core/env";
 import { protectedProcedure, router } from "../_core/trpc";
 
 const projectId = z.string().min(8).max(32);
@@ -192,10 +195,56 @@ export const studioRouter = router({
         }
       }),
   }),
+  exports: router({
+    conversation: protectedProcedure.input(z.object({ conversationId: projectId })).mutation(async ({ ctx, input }) => {
+      try {
+        const conversation = await db.getConversation(ctx.user.id, input.conversationId);
+        if (!conversation) throw new TRPCError({ code: "NOT_FOUND", message: "Conversa não encontrada." });
+        const messages = await db.listMessages(ctx.user.id, input.conversationId);
+        return {
+          title: conversation.title,
+          markdown: createConversationMarkdown(conversation, messages),
+          fileName: exportFileName(`conversa-${conversation.title}`, "md"),
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        return databaseFailure(error);
+      }
+    }),
+    artifact: protectedProcedure.input(z.object({ artifactId: projectId, includeHistory: z.boolean().default(true) })).mutation(async ({ ctx, input }) => {
+      try {
+        const artifact = await db.getArtifact(ctx.user.id, input.artifactId);
+        if (!artifact) throw new TRPCError({ code: "NOT_FOUND", message: "Artefato não encontrado." });
+        const versions = input.includeHistory ? await db.listArtifactVersions(ctx.user.id, input.artifactId) : [];
+        return {
+          title: artifact.title,
+          markdown: createArtifactMarkdown(artifact, versions),
+          fileName: exportFileName(`artefato-${artifact.filePath || artifact.title}`, "md"),
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        return databaseFailure(error);
+      }
+    }),
+  }),
+  firebase: router({
+    status: protectedProcedure.query(() => getFirebaseServerCompatibility({
+      projectId: ENV.firebaseProjectId,
+      clientEmail: ENV.firebaseClientEmail,
+      privateKey: ENV.firebasePrivateKey,
+    })),
+  }),
   preferences: router({
     get: protectedProcedure.query(async ({ ctx }) => {
       try {
-        return await db.getPreferences(ctx.user.id);
+        const preferences = await db.getPreferences(ctx.user.id);
+        return preferences || {
+          autonomyMode: "ask" as const,
+          preferredTextSlot: null,
+          firebaseProjectId: null,
+          firebaseAuthConfigured: false,
+          firestoreConfigured: false,
+        };
       } catch (error) {
         return databaseFailure(error);
       }

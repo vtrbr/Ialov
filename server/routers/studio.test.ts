@@ -61,6 +61,40 @@ describe("studio router", () => {
     expect(databaseMock.getProject).toHaveBeenCalledWith(72, "project-visible-to-71");
   });
 
+  it("retorna preferências iniciais quando o usuário ainda não possui registro", async () => {
+    databaseMock.getPreferences.mockResolvedValue(undefined);
+    const caller = appRouter.createCaller(contextFor(71));
+
+    await expect(caller.studio.preferences.get()).resolves.toMatchObject({
+      autonomyMode: "ask",
+      preferredTextSlot: null,
+      firebaseProjectId: null,
+      firebaseAuthConfigured: false,
+      firestoreConfigured: false,
+    });
+  });
+
+  it("impede exportação de conversa que não pertence ao usuário autenticado", async () => {
+    databaseMock.getConversation.mockResolvedValue(undefined);
+    const caller = appRouter.createCaller(contextFor(72));
+
+    await expect(caller.studio.exports.conversation({ conversationId: "conversation-visible-to-71" })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(databaseMock.getConversation).toHaveBeenCalledWith(72, "conversation-visible-to-71");
+    expect(databaseMock.listMessages).not.toHaveBeenCalled();
+  });
+
+  it("monta exportação de artefato com conteúdo do proprietário", async () => {
+    databaseMock.getArtifact.mockResolvedValue({ id: "artifact-lunex-001", ownerId: 71, title: "App", filePath: "src/App.tsx", language: "tsx", kind: "code", version: 1, content: "export default null", updatedAt: new Date("2026-08-14T12:00:00.000Z") });
+    databaseMock.listArtifactVersions.mockResolvedValue([]);
+    const caller = appRouter.createCaller(contextFor(71));
+
+    const result = await caller.studio.exports.artifact({ artifactId: "artifact-lunex-001", includeHistory: true });
+
+    expect(databaseMock.getArtifact).toHaveBeenCalledWith(71, "artifact-lunex-001");
+    expect(databaseMock.listArtifactVersions).toHaveBeenCalledWith(71, "artifact-lunex-001");
+    expect(result.markdown).toContain("export default null");
+  });
+
   it("restaura a versão solicitada criando uma nova versão auditável", async () => {
     databaseMock.getArtifact.mockResolvedValue({ id: "artifact-lunex-001", ownerId: 71, projectId: "project-lunex-001" });
     databaseMock.listArtifactVersions.mockResolvedValue([
