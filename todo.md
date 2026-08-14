@@ -10,23 +10,33 @@
 - [x] Implementar adaptador seguro de geração de imagem separado do pool de texto e suporte a resposta de erro sem vazar credenciais.
 - [x] Implementar streaming de eventos do agente, incluindo mensagens parciais, etapas resumidas, chamadas de ferramenta e estados de erro.
 - [x] Implementar alertas para o proprietário em novos cadastros e falhas críticas do motor do agente.
-- [ ] Implementar parser de artefatos e operações incrementais de criação e substituição com validação de contexto.
-- [ ] Implementar histórico versionado de artefatos, comparação visual de versões e restauração não destrutiva.
-- [ ] Implementar preview em iframe sandboxado para HTML e componentes de demonstração com atualização automática.
-- [ ] Criar logotipo, favicon e splash screen próprios do Lunex 1.2 e publicar os ativos no armazenamento estático do projeto.
-- [ ] Criar interface escura responsiva inspirada nas referências: navegação de projetos, chat, trilha do agente, painel de artefato, editor, preview e terminal.
-- [ ] Adaptar a experiência para telas móveis com alternância acessível entre chat, código, preview e ajustes.
-- [ ] Criar painel de configurações protegido para registrar provedores, estado das chaves, preferências de autonomia e status do Firebase.
-- [ ] Implementar autenticação da plataforma com sessão persistente e camada de compatibilidade para futura migração ao Firebase Auth.
-- [ ] Escrever testes Vitest para isolamento, configuração de provedores, fallback, validação de diffs e persistência.
+- [x] Implementar parser de artefatos e operações incrementais de criação e substituição com validação de contexto.
+- [x] Implementar histórico versionado de artefatos, comparação visual de versões e restauração não destrutiva.
+- [x] Implementar preview em iframe sandboxado para HTML e componentes de demonstração com atualização automática.
+- [x] Criar logotipo, favicon e splash screen próprios do Lunex 1.2 e publicar os ativos no armazenamento estático do projeto.
+- [x] Criar interface escura responsiva inspirada nas referências: navegação de projetos, chat, trilha do agente, painel de artefato, editor, preview e terminal.
+- [x] Adaptar a experiência para telas móveis com alternância acessível entre chat, código, preview e ajustes.
+- [x] Criar painel de configurações protegido para registrar provedores, estado das chaves, preferências de autonomia e status do Firebase.
+- [x] Implementar autenticação da plataforma com sessão persistente e camada de compatibilidade para futura migração ao Firebase Auth.
+- [x] Escrever testes Vitest para isolamento, configuração de provedores, fallback, validação de diffs e persistência.
 - [x] Sanitizar a listagem de provedores e testar que nenhuma chave ou ciphertext seja devolvido ao cliente.
 - [x] Emitir eventos reais de início e término de ferramenta no motor do agente.
-- [ ] Implementar e testar a extração de artefatos do agente, diferenciando criação e substituição sob o mesmo projeto e conversa.
-- [ ] Criar no frontend a visualização de histórico, diff e restauração acionável de artefatos.
-- [ ] Integrar o preview sandboxado ao painel de artefato para refletir automaticamente as alterações do editor.
+- [x] Implementar e testar a extração de artefatos do agente, diferenciando criação e substituição sob o mesmo projeto e conversa.
+- [x] Criar no frontend a visualização de histórico, diff e restauração acionável de artefatos.
+- [x] Integrar o preview sandboxado ao painel de artefato para refletir automaticamente as alterações do editor.
 - [x] Validar que a conversa opcional de um artefato pertence ao mesmo proprietário e projeto antes da gravação.
 - [x] Validar vínculo de projeto e conversa antes de criar uma execução do agente.
 - [x] Validar propriedade da execução e projeto antes de gravar eventos de uma execução.
-- [ ] Verificar build, testes, responsividade em desktop e mobile, acessibilidade básica e falhas de console.
+- [x] Verificar build, testes, responsividade em desktop e mobile, acessibilidade básica e falhas de console.
 - [ ] Criar checkpoint da entrega completa e enviar código final para `vtrbr/Ialov`.
 - [ ] Entregar documento com variáveis obrigatórias, configuração do Firebase e regras seguras do Firestore.
+- [x] Executar auditoria verificável de acessibilidade básica para landmarks, navegação por teclado, foco, rótulos e contraste da interface principal e do workspace.
+- [x] Corrigir o erro de runtime de importação de `server/routers/agent` e revalidar o console do navegador sem falhas.
+- [x] Expor e persistir no painel os controles de autonomia e slot preferencial de texto.
+- [x] Documentar e implementar a camada de compatibilidade com Firebase Auth além da sessão OAuth atual.
+- [x] Tornar verificável a navegação mobile entre chat, código, preview e ajustes.
+- [x] Inspecionar e testar explicitamente o iframe sandboxado e a atualização automática de preview no workspace.
+- [x] Adicionar teste verificável para sandbox e atualização do preview quando o conteúdo do artefato muda.
+- [x] Criar e validar uma área de terminal dedicada na composição desktop do estúdio.
+- [x] Revalidar o console em nova sessão após o reinício, confirmando que não há erro de importação do roteador do agente.
+- [x] Validar por código e teste o fluxo editor → preview dentro de `ArtifactWorkspace`.

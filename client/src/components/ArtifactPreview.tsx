@@ -7,6 +7,8 @@ type ArtifactPreviewProps = {
   title?: string;
 };
 
+export const previewSandbox = "allow-scripts";
+
 function documentShell(body: string, scripts = "") {
   return `<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline' https:; connect-src 'none'; font-src https: data:" /><style>html,body,#root{min-height:100%;margin:0}body{font-family:ui-sans-serif,system-ui,sans-serif;color:#e8eaf5;background:#101119}</style></head><body>${body}${scripts}</body></html>`;
 }
@@ -21,12 +23,14 @@ function reactDocument(source: string) {
   );
 }
 
+export function buildPreviewDocument(content: string, mode: ArtifactPreviewProps["mode"]) {
+  if (mode === "html") return documentShell(content);
+  if (mode === "react") return reactDocument(content);
+  return "";
+}
+
 export function ArtifactPreview({ content, mode, title = "Preview do artefato" }: ArtifactPreviewProps) {
-  const srcDoc = useMemo(() => {
-    if (mode === "html") return documentShell(content);
-    if (mode === "react") return reactDocument(content);
-    return "";
-  }, [content, mode]);
+  const srcDoc = useMemo(() => buildPreviewDocument(content, mode), [content, mode]);
 
   if (mode === "none") {
     return (
@@ -44,7 +48,7 @@ export function ArtifactPreview({ content, mode, title = "Preview do artefato" }
         <span className="truncate">{title}</span>
         <span className="ml-auto rounded bg-emerald-400/10 px-1.5 py-0.5 text-[10px] text-emerald-300">isolado</span>
       </div>
-      <iframe title={title} sandbox="allow-scripts" srcDoc={srcDoc} className="min-h-0 flex-1 bg-white" />
+      <iframe title={title} sandbox={previewSandbox} srcDoc={srcDoc} className="min-h-0 flex-1 bg-white" />
     </div>
   );
 }

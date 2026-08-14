@@ -14,6 +14,9 @@ import {
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
+  /** UID opcional, preenchido apenas após o vínculo seguro com Firebase Auth. */
+  firebaseUid: varchar("firebaseUid", { length: 128 }),
+  firebaseLinkedAt: timestamp("firebaseLinkedAt"),
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
@@ -21,7 +24,7 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
-});
+}, table => [uniqueIndex("users_firebase_uid_unique").on(table.firebaseUid)]);
 
 export const projects = mysqlTable(
   "projects",

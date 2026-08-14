@@ -17,11 +17,17 @@ type Artifact = {
 type Version = { id: string; version: number; summary: string; createdAt: Date | string; operation: string };
 type DiffLine = { type: "same" | "add" | "remove"; value: string; beforeLine?: number; afterLine?: number };
 
+export function workspacePreviewBinding(content: string, mode: Artifact["previewMode"]) {
+  return { content, mode };
+}
+
 export function ArtifactWorkspace({
   artifact,
   versions = [],
   diffLines = [],
   saving = false,
+  activeTab: controlledTab,
+  onActiveTabChange,
   onSave,
   onRestore,
 }: {
@@ -29,11 +35,14 @@ export function ArtifactWorkspace({
   versions?: Version[];
   diffLines?: DiffLine[];
   saving?: boolean;
+  activeTab?: "code" | "preview" | "changes" | "history";
+  onActiveTabChange?: (tab: "code" | "preview" | "changes" | "history") => void;
   onSave?: (content: string) => void;
   onRestore?: (version: number) => void;
 }) {
   const [draft, setDraft] = useState(artifact?.content || "");
-  const [activeTab, setActiveTab] = useState("code");
+  const [internalTab, setInternalTab] = useState<"code" | "preview" | "changes" | "history">("code");
+  const activeTab = controlledTab || internalTab;
   useEffect(() => setDraft(artifact?.content || ""), [artifact?.id, artifact?.content]);
   const dirty = Boolean(artifact && draft !== artifact.content);
   const label = useMemo(() => artifact?.filePath || "Selecione um artefato", [artifact?.filePath]);
@@ -52,7 +61,7 @@ export function ArtifactWorkspace({
           <Button size="sm" disabled={!dirty || saving} onClick={() => onSave?.(draft)} className="h-8 gap-1.5 bg-violet-500 text-xs hover:bg-violet-400"><Save className="h-3.5 w-3.5" />Salvar</Button>
         </div>
       </header>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col">
+      <Tabs value={activeTab} onValueChange={value => { const tab = value as "code" | "preview" | "changes" | "history"; setInternalTab(tab); onActiveTabChange?.(tab); }} className="flex min-h-0 flex-1 flex-col">
         <TabsList className="h-10 w-full shrink-0 justify-start rounded-none border-b border-white/10 bg-transparent px-2">
           <TabsTrigger value="code" className="gap-1.5 text-xs"><Code2 className="h-3.5 w-3.5" />Código</TabsTrigger>
           <TabsTrigger value="preview" className="gap-1.5 text-xs"><Eye className="h-3.5 w-3.5" />Preview</TabsTrigger>
@@ -60,7 +69,7 @@ export function ArtifactWorkspace({
           <TabsTrigger value="history" className="gap-1.5 text-xs"><Clock3 className="h-3.5 w-3.5" />Histórico</TabsTrigger>
         </TabsList>
         <TabsContent value="code" className="mt-0 min-h-0 flex-1 p-0"><textarea aria-label={`Editar ${artifact.filePath}`} spellCheck={false} value={draft} onChange={event => setDraft(event.target.value)} className="h-full min-h-72 w-full resize-none bg-[#0b0c12] p-4 font-mono text-[13px] leading-6 text-slate-200 outline-none" /></TabsContent>
-        <TabsContent value="preview" className="mt-0 min-h-0 flex-1 p-3"><ArtifactPreview content={draft} mode={artifact.previewMode} title={artifact.title} /></TabsContent>
+        <TabsContent value="preview" className="mt-0 min-h-0 flex-1 p-3"><ArtifactPreview {...workspacePreviewBinding(draft, artifact.previewMode)} title={artifact.title} /></TabsContent>
         <TabsContent value="changes" className="mt-0 min-h-0 flex-1 overflow-auto bg-[#0b0c12] p-3 font-mono text-xs leading-6">
           {diffLines.length ? diffLines.map((line, index) => <div key={`${line.type}-${index}`} className={line.type === "add" ? "bg-emerald-400/10 text-emerald-200" : line.type === "remove" ? "bg-rose-400/10 text-rose-200" : "text-slate-400"}><span className="mr-3 inline-block w-10 select-none text-right text-slate-600">{line.beforeLine || line.afterLine || ""}</span><span className="mr-2">{line.type === "add" ? "+" : line.type === "remove" ? "−" : " "}</span>{line.value || " "}</div>) : <p className="p-4 font-sans text-sm text-slate-500">Selecione duas versões para visualizar as mudanças.</p>}
         </TabsContent>
