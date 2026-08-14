@@ -45,8 +45,8 @@
 - [x] Reorganizar artefatos, preview, terminal e configurações em painéis contextuais que não concorram com o chat.
 - [x] Ajustar a experiência mobile para navegação clara e mínima entre conversa, artefato e preview.
 - [x] Reduzir peso de componentes e validar compilação, testes e capturas desktop/mobile da nova interface.
-- [ ] Sincronizar a reformulação de interface no repositório GitHub e salvar um novo checkpoint.
-- [ ] Confirmar commit e push bem-sucedidos da reformulação no repositório `vtrbr/Ialov`.
-- [ ] Atualizar o `todo.md` também no repositório sincronizado após concluir o push.
+- [x] Sincronizar a reformulação de interface no repositório GitHub e salvar um novo checkpoint.
+- [x] Confirmar commit e push bem-sucedidos da reformulação no repositório `vtrbr/Ialov`.
+- [x] Atualizar o `todo.md` também no repositório sincronizado após concluir o push.
 - [x] Otimizar o cliente com carregamento sob demanda do workspace de artefatos e painéis contextuais, preservando a funcionalidade.
 - [x] Registrar evidência verificável da redução de peso do bundle antes de concluir a revisão de leveza.
