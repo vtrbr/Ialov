@@ -2,6 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
+import { agentRouter } from "./routers/agent";
 import { studioRouter } from "./routers/studio";
 
 export const appRouter = router({
@@ -14,6 +15,7 @@ export const appRouter = router({
       return { success: true } as const;
     }),
   }),
+  agent: agentRouter,
   studio: studioRouter,
 });
 

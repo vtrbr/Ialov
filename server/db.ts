@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { nanoid } from "nanoid";
 import {
@@ -343,6 +343,83 @@ export async function listProviderConfigs(ownerId: number) {
     .from(providerConfigs)
     .where(eq(providerConfigs.ownerId, ownerId))
     .orderBy(asc(providerConfigs.priority));
+}
+
+export type ProviderSlot = "text_1" | "text_2" | "text_3" | "text_4" | "image_1";
+export type ProviderName = "openai" | "anthropic" | "gemini" | "compatible" | "other";
+
+export async function upsertProviderConfig(
+  ownerId: number,
+  input: {
+    slot: ProviderSlot;
+    provider: ProviderName;
+    model: string;
+    baseUrl?: string | null;
+    apiKeyCiphertext: string;
+    apiKeyFingerprint: string;
+    priority: number;
+    enabled: boolean;
+  }
+) {
+  const db = requireDatabase(await getDb());
+  await db
+    .insert(providerConfigs)
+    .values({ id: nanoid(18), ownerId, ...input })
+    .onDuplicateKeyUpdate({
+      set: {
+        provider: input.provider,
+        model: input.model,
+        baseUrl: input.baseUrl || null,
+        apiKeyCiphertext: input.apiKeyCiphertext,
+        apiKeyFingerprint: input.apiKeyFingerprint,
+        priority: input.priority,
+        enabled: input.enabled,
+        failureCount: 0,
+        lastFailureAt: null,
+        updatedAt: new Date(),
+      },
+    });
+  const rows = await db
+    .select()
+    .from(providerConfigs)
+    .where(and(eq(providerConfigs.ownerId, ownerId), eq(providerConfigs.slot, input.slot)))
+    .limit(1);
+  return rows[0];
+}
+
+export async function setProviderEnabled(ownerId: number, slot: ProviderSlot, enabled: boolean) {
+  const db = requireDatabase(await getDb());
+  await db
+    .update(providerConfigs)
+    .set({ enabled, updatedAt: new Date() })
+    .where(and(eq(providerConfigs.ownerId, ownerId), eq(providerConfigs.slot, slot)));
+}
+
+export async function listRoutableProviders(ownerId: number, lane: "text" | "image") {
+  const db = requireDatabase(await getDb());
+  const slots: ProviderSlot[] = lane === "image" ? ["image_1"] : ["text_1", "text_2", "text_3", "text_4"];
+  const all = await db
+    .select()
+    .from(providerConfigs)
+    .where(and(eq(providerConfigs.ownerId, ownerId), eq(providerConfigs.enabled, true)))
+    .orderBy(asc(providerConfigs.priority), asc(providerConfigs.updatedAt));
+  return all.filter(config => slots.includes(config.slot));
+}
+
+export async function recordProviderSuccess(ownerId: number, configId: string) {
+  const db = requireDatabase(await getDb());
+  await db
+    .update(providerConfigs)
+    .set({ failureCount: 0, lastSuccessAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(providerConfigs.id, configId), eq(providerConfigs.ownerId, ownerId)));
+}
+
+export async function recordProviderFailure(ownerId: number, configId: string) {
+  const db = requireDatabase(await getDb());
+  await db
+    .update(providerConfigs)
+    .set({ failureCount: sql`${providerConfigs.failureCount} + 1`, lastFailureAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(providerConfigs.id, configId), eq(providerConfigs.ownerId, ownerId)));
 }
 
 export async function getPreferences(ownerId: number) {

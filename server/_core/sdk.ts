@@ -7,6 +7,7 @@ import { SignJWT, jwtVerify } from "jose";
 import type { User } from "../../drizzle/schema";
 import * as db from "../db";
 import { ENV } from "./env";
+import { notifyOwner } from "./notification";
 import type {
   ExchangeTokenRequest,
   ExchangeTokenResponse,
@@ -288,6 +289,7 @@ class SDKServer {
     const sessionUserId = session.openId;
     const signedInAt = new Date();
     let user = await db.getUserByOpenId(sessionUserId);
+    const isNewUser = !user;
 
     // If user not in DB, sync from OAuth server automatically
     if (!user) {
@@ -309,6 +311,13 @@ class SDKServer {
 
     if (!user) {
       throw ForbiddenError("User not found");
+    }
+
+    if (isNewUser) {
+      await notifyOwner({
+        title: "Novo usuário no Lunex 1.2",
+        content: `Um novo usuário concluiu o primeiro acesso: ${user.name || user.openId}.`,
+      }).catch(() => false);
     }
 
     await db.upsertUser({
