@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { ArtifactWorkspace } from "@/components/ArtifactWorkspace";
 import { LunexBrand, LunexSplash } from "@/components/LunexBrand";
 import { MarkdownMessage } from "@/components/MarkdownMessage";
 import { Button } from "@/components/ui/button";
@@ -10,30 +11,55 @@ import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { extractSseEvents } from "@/lib/agentStream";
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Braces, ChevronDown, CircleDot, FileCode2, FolderPlus, Loader2, Menu, MessageSquarePlus, Plus, Send, Settings2, Sparkles, TerminalSquare, UserRound } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Bot, ChevronDown, FileCode2, FolderPlus, Loader2, Menu, MessageSquarePlus, Plus, Send, Settings2, TerminalSquare, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 type LiveMessage = { id: string; role: "user" | "assistant" | "tool"; content: string; isStreaming?: boolean };
 type Project = { id: string; name: string; updatedAt: Date | string };
-const ArtifactWorkspace = lazy(() => import("@/components/ArtifactWorkspace").then(module => ({ default: module.ArtifactWorkspace })));
-const SettingsPanel = lazy(() => import("@/components/SettingsPanel"));
 
 function isAgentEvent(value: unknown): value is { type: string; payload: Record<string, unknown> } {
   return Boolean(value && typeof value === "object" && "type" in value && "payload" in value);
 }
 
 function ProjectsRail({ projects, selectedId, onSelect, onCreate, onSettings }: { projects: Project[]; selectedId?: string; onSelect: (id: string) => void; onCreate: () => void; onSettings: () => void }) {
-  return <aside className="flex h-full w-full flex-col bg-[#171717]">
-    <div className="flex h-16 items-center justify-between px-4"><LunexBrand /><Button variant="ghost" size="icon" onClick={onCreate} className="h-8 w-8 rounded-md text-neutral-400 hover:bg-white/[.06] hover:text-white"><FolderPlus className="h-4 w-4" /><span className="sr-only">Criar projeto</span></Button></div>
-    <div className="px-3 pb-5"><Button onClick={onCreate} variant="outline" className="h-9 w-full justify-start gap-2 border-white/[.12] bg-transparent text-xs text-neutral-300 hover:bg-white/[.06] hover:text-white"><Plus className="h-3.5 w-3.5" />Novo chat de projeto</Button></div>
-    <p className="px-4 pb-2 text-[10px] font-medium uppercase tracking-[.14em] text-neutral-500">Projetos</p>
-    <ScrollArea className="min-h-0 flex-1 px-2"><div className="space-y-0.5 pb-4">{projects.map(project => <button key={project.id} onClick={() => onSelect(project.id)} className={cn("flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition", selectedId === project.id ? "bg-white/[.08] text-white" : "text-neutral-400 hover:bg-white/[.05] hover:text-neutral-200")}><Braces className={cn("h-3.5 w-3.5 shrink-0", selectedId === project.id ? "text-white" : "text-neutral-600")} /><span className="min-w-0 flex-1 truncate text-xs font-medium">{project.name}</span></button>)}{!projects.length && <p className="px-2 py-5 text-center text-xs text-neutral-500">Crie seu primeiro projeto para começar.</p>}</div></ScrollArea>
-    <div className="p-3"><button onClick={onSettings} className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-xs text-neutral-500 hover:bg-white/[.05] hover:text-neutral-300"><Settings2 className="h-3.5 w-3.5" />Configurações</button></div>
-  </aside>;
+  return (
+    <aside className="flex h-full w-full flex-col border-r border-border bg-sidebar lg:w-[220px]">
+      <div className="flex h-14 items-center justify-between px-3">
+        <LunexBrand />
+        <Button variant="ghost" size="icon" onClick={onCreate} className="h-7 w-7 text-muted-foreground">
+          <FolderPlus className="h-4 w-4" />
+          <span className="sr-only">Criar projeto</span>
+        </Button>
+      </div>
+      <ScrollArea className="min-h-0 flex-1 px-2">
+        <div className="space-y-0.5 py-1 pb-4">
+          {projects.map(project => (
+            <button
+              key={project.id}
+              onClick={() => onSelect(project.id)}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition",
+                selectedId === project.id ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+              )}
+            >
+              <span className="min-w-0 flex-1 truncate">{project.name}</span>
+            </button>
+          ))}
+          {!projects.length && <p className="px-2.5 py-4 text-xs text-muted-foreground">Crie seu primeiro projeto para começar.</p>}
+        </div>
+      </ScrollArea>
+      <div className="border-t border-border p-2">
+        <button onClick={onSettings} className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm text-muted-foreground hover:bg-accent/60 hover:text-foreground">
+          <Settings2 className="h-4 w-4" />
+          Configurações
+        </button>
+      </div>
+    </aside>
+  );
 }
 
-function SettingsPanelLegacy({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function SettingsPanel({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const utils = trpc.useUtils();
   const providers = trpc.agent.providers.list.useQuery(undefined, { enabled: open });
   const preferences = trpc.studio.preferences.get.useQuery(undefined, { enabled: open });
@@ -51,7 +77,114 @@ function SettingsPanelLegacy({ open, onOpenChange }: { open: boolean; onOpenChan
   const updatePreferences = trpc.studio.preferences.update.useMutation({ onSuccess: () => { utils.studio.preferences.get.invalidate(); toast.success("Status da integração salvo."); } });
   useEffect(() => { if (!preferences.data) return; setFirebaseProjectId(preferences.data.firebaseProjectId || ""); setFirebaseAuthConfigured(Boolean(preferences.data.firebaseAuthConfigured)); setFirestoreConfigured(Boolean(preferences.data.firestoreConfigured)); setAutonomyMode(preferences.data.autonomyMode); setPreferredTextSlot((preferences.data.preferredTextSlot || "") as typeof preferredTextSlot); }, [preferences.data]);
   const current = providers.data?.find(item => item.slot === slot);
-  return <Sheet open={open} onOpenChange={onOpenChange}><SheetContent side="right" className="w-full overflow-y-auto border-white/10 bg-[#0e1018] p-0 text-slate-100 sm:max-w-[440px]"><div className="border-b border-white/[.08] px-6 py-5"><p className="text-sm font-semibold">Configurações do estúdio</p><p className="mt-1 text-xs text-slate-500">As chaves são cifradas no servidor e jamais retornam para o navegador.</p></div><div className="space-y-8 p-6"><section><div className="mb-4 flex items-center justify-between"><div><h2 className="text-sm font-medium">Pool de IA</h2><p className="mt-1 text-xs text-slate-500">Quatro rotas de texto e uma rota exclusiva de imagem.</p></div><span className="rounded-full bg-violet-400/10 px-2 py-1 text-[10px] font-medium text-violet-200">{providers.data?.filter(item => item.enabled).length || 0}/5 ativas</span></div><div className="space-y-3"><label className="block text-xs text-slate-400">Posição<select value={slot} onChange={event => setSlot(event.target.value as typeof slot)} className="mt-1.5 h-9 w-full rounded-lg border border-white/10 bg-[#171923] px-2 text-xs text-slate-200 outline-none focus:border-violet-400/40"><option value="text_1">Texto 1 · principal</option><option value="text_2">Texto 2 · fallback</option><option value="text_3">Texto 3 · fallback</option><option value="text_4">Texto 4 · fallback</option><option value="image_1">Imagem · dedicada</option></select></label><div className="grid grid-cols-2 gap-3"><label className="block text-xs text-slate-400">Provedor<select value={provider} onChange={event => setProvider(event.target.value as typeof provider)} className="mt-1.5 h-9 w-full rounded-lg border border-white/10 bg-[#171923] px-2 text-xs text-slate-200 outline-none focus:border-violet-400/40"><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="gemini">Gemini</option><option value="compatible">Compatível</option><option value="other">Outro</option></select></label><label className="block text-xs text-slate-400">Prioridade<Input type="number" min="0" max="100" defaultValue={current?.priority || 10} className="mt-1.5 h-9 border-white/10 bg-[#171923] text-xs text-slate-100" /></label></div><label className="block text-xs text-slate-400">Modelo<Input value={model} onChange={event => setModel(event.target.value)} placeholder="gpt-4.1-mini" className="mt-1.5 h-9 border-white/10 bg-[#171923] text-xs text-slate-100 placeholder:text-slate-600" /></label><label className="block text-xs text-slate-400">Endpoint compatível <span className="text-slate-600">(opcional)</span><Input value={baseUrl} onChange={event => setBaseUrl(event.target.value)} placeholder="https://..." className="mt-1.5 h-9 border-white/10 bg-[#171923] text-xs text-slate-100 placeholder:text-slate-600" /></label><label className="block text-xs text-slate-400">Chave de API {current?.apiKeyFingerprint && <span className="text-emerald-400">· configurada ({current.apiKeyFingerprint})</span>}<Input value={apiKey} onChange={event => setApiKey(event.target.value)} type="password" placeholder={current?.apiKeyFingerprint ? "Informe apenas para substituir" : "Cole a chave aqui"} className="mt-1.5 h-9 border-white/10 bg-[#171923] text-xs text-slate-100 placeholder:text-slate-600" /></label><Button disabled={!apiKey || saveProvider.isPending} onClick={() => saveProvider.mutate({ slot, provider, model, baseUrl: baseUrl || null, apiKey, priority: current?.priority || 10, enabled: true })} className="h-9 w-full bg-violet-500 text-xs hover:bg-violet-400">Salvar configuração</Button></div></section><section className="border-t border-white/[.08] pt-7"><h2 className="text-sm font-medium">Controle do agente</h2><p className="mt-1 text-xs leading-5 text-slate-500">Escolha quando o Lunex deve pedir confirmação e qual rota textual prefere iniciar.</p><div className="mt-4 space-y-3"><div className="grid grid-cols-2 gap-2"><button onClick={() => setAutonomyMode("ask")} className={cn("rounded-lg border p-2.5 text-left text-xs", autonomyMode === "ask" ? "border-violet-400/40 bg-violet-400/10 text-violet-100" : "border-white/10 text-slate-500")}><strong className="block font-medium">Confirmar</strong><span className="mt-1 block text-[10px]">Pergunta antes de alterações.</span></button><button onClick={() => setAutonomyMode("autonomous")} className={cn("rounded-lg border p-2.5 text-left text-xs", autonomyMode === "autonomous" ? "border-violet-400/40 bg-violet-400/10 text-violet-100" : "border-white/10 text-slate-500")}><strong className="block font-medium">Autônomo</strong><span className="mt-1 block text-[10px]">Segue o plano automaticamente.</span></button></div><label className="block text-xs text-slate-400">Rota inicial de texto<select value={preferredTextSlot} onChange={event => setPreferredTextSlot(event.target.value as typeof preferredTextSlot)} className="mt-1.5 h-9 w-full rounded-lg border border-white/10 bg-[#171923] px-2 text-xs text-slate-200 outline-none focus:border-violet-400/40"><option value="">Roteamento automático</option><option value="text_1">Texto 1</option><option value="text_2">Texto 2</option><option value="text_3">Texto 3</option><option value="text_4">Texto 4</option></select></label><Button variant="outline" onClick={() => updatePreferences.mutate({ autonomyMode, preferredTextSlot: preferredTextSlot || null })} className="h-9 w-full border-white/10 bg-white/[.025] text-xs text-slate-300 hover:bg-white/[.06] hover:text-white">Salvar preferências do agente</Button></div></section><section className="border-t border-white/[.08] pt-7"><h2 className="text-sm font-medium">Firebase <span className="text-slate-500">(preparação)</span></h2><p className="mt-1 text-xs leading-5 text-slate-500">Marque o estado quando concluir a configuração no console do Firebase. As credenciais admin ficam somente no servidor.</p><div className="mt-4 space-y-3"><Input value={firebaseProjectId} onChange={event => setFirebaseProjectId(event.target.value)} placeholder="ID do projeto Firebase" className="h-9 border-white/10 bg-[#171923] text-xs text-slate-100 placeholder:text-slate-600" /><div className="grid grid-cols-2 gap-2"><label className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[.025] p-2.5 text-xs text-slate-400"><input checked={firebaseAuthConfigured} onChange={event => setFirebaseAuthConfigured(event.target.checked)} type="checkbox" /> Auth configurado</label><label className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[.025] p-2.5 text-xs text-slate-400"><input checked={firestoreConfigured} onChange={event => setFirestoreConfigured(event.target.checked)} type="checkbox" /> Firestore configurado</label></div><Button variant="outline" onClick={() => updatePreferences.mutate({ firebaseProjectId: firebaseProjectId || null, firebaseAuthConfigured, firestoreConfigured })} className="h-9 w-full border-white/10 bg-white/[.025] text-xs text-slate-300 hover:bg-white/[.06] hover:text-white">Salvar status do Firebase</Button></div></section></div></SheetContent></Sheet>;
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full overflow-y-auto border-border bg-background p-0 sm:max-w-[420px]">
+        <div className="border-b border-border px-5 py-4">
+          <p className="text-sm font-medium">Configurações do estúdio</p>
+          <p className="mt-1 text-xs text-muted-foreground">As chaves são cifradas no servidor e jamais retornam para o navegador.</p>
+        </div>
+        <div className="space-y-7 p-5">
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-medium">Pool de IA</h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">Quatro rotas de texto e uma rota exclusiva de imagem.</p>
+              </div>
+              <span className="text-xs text-muted-foreground">{providers.data?.filter(item => item.enabled).length || 0}/5 ativas</span>
+            </div>
+            <div className="space-y-3">
+              <label className="block text-xs text-muted-foreground">
+                Posição
+                <select value={slot} onChange={event => setSlot(event.target.value as typeof slot)} className="mt-1 h-9 w-full rounded-md border border-border bg-transparent px-2 text-xs text-foreground outline-none">
+                  <option value="text_1">Texto 1 · principal</option>
+                  <option value="text_2">Texto 2 · fallback</option>
+                  <option value="text_3">Texto 3 · fallback</option>
+                  <option value="text_4">Texto 4 · fallback</option>
+                  <option value="image_1">Imagem · dedicada</option>
+                </select>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block text-xs text-muted-foreground">
+                  Provedor
+                  <select value={provider} onChange={event => setProvider(event.target.value as typeof provider)} className="mt-1 h-9 w-full rounded-md border border-border bg-transparent px-2 text-xs text-foreground outline-none">
+                    <option value="openai">OpenAI</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="gemini">Gemini</option>
+                    <option value="compatible">Compatível</option>
+                    <option value="other">Outro</option>
+                  </select>
+                </label>
+                <label className="block text-xs text-muted-foreground">
+                  Prioridade
+                  <Input type="number" min="0" max="100" defaultValue={current?.priority || 10} className="mt-1 h-9 text-xs" />
+                </label>
+              </div>
+              <label className="block text-xs text-muted-foreground">
+                Modelo
+                <Input value={model} onChange={event => setModel(event.target.value)} placeholder="gpt-4.1-mini" className="mt-1 h-9 text-xs" />
+              </label>
+              <label className="block text-xs text-muted-foreground">
+                Endpoint compatível <span className="text-muted-foreground/70">(opcional)</span>
+                <Input value={baseUrl} onChange={event => setBaseUrl(event.target.value)} placeholder="https://..." className="mt-1 h-9 text-xs" />
+              </label>
+              <label className="block text-xs text-muted-foreground">
+                Chave de API {current?.apiKeyFingerprint && <span className="text-emerald-600 dark:text-emerald-400">· configurada ({current.apiKeyFingerprint})</span>}
+                <Input value={apiKey} onChange={event => setApiKey(event.target.value)} type="password" placeholder={current?.apiKeyFingerprint ? "Informe apenas para substituir" : "Cole a chave aqui"} className="mt-1 h-9 text-xs" />
+              </label>
+              <Button disabled={!apiKey || saveProvider.isPending} onClick={() => saveProvider.mutate({ slot, provider, model, baseUrl: baseUrl || null, apiKey, priority: current?.priority || 10, enabled: true })} className="h-9 w-full text-xs">Salvar configuração</Button>
+            </div>
+          </section>
+
+          <section className="border-t border-border pt-6">
+            <h2 className="text-sm font-medium">Controle do agente</h2>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">Escolha quando o agente deve pedir confirmação e qual rota textual prefere iniciar.</p>
+            <div className="mt-3 space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => setAutonomyMode("ask")} className={cn("rounded-md border p-2.5 text-left text-xs", autonomyMode === "ask" ? "border-foreground/30 bg-accent" : "border-border text-muted-foreground")}>
+                  <strong className="block font-medium text-foreground">Confirmar</strong>
+                  <span className="mt-0.5 block text-[11px]">Pergunta antes de alterações.</span>
+                </button>
+                <button onClick={() => setAutonomyMode("autonomous")} className={cn("rounded-md border p-2.5 text-left text-xs", autonomyMode === "autonomous" ? "border-foreground/30 bg-accent" : "border-border text-muted-foreground")}>
+                  <strong className="block font-medium text-foreground">Autônomo</strong>
+                  <span className="mt-0.5 block text-[11px]">Segue o plano automaticamente.</span>
+                </button>
+              </div>
+              <label className="block text-xs text-muted-foreground">
+                Rota inicial de texto
+                <select value={preferredTextSlot} onChange={event => setPreferredTextSlot(event.target.value as typeof preferredTextSlot)} className="mt-1 h-9 w-full rounded-md border border-border bg-transparent px-2 text-xs text-foreground outline-none">
+                  <option value="">Roteamento automático</option>
+                  <option value="text_1">Texto 1</option>
+                  <option value="text_2">Texto 2</option>
+                  <option value="text_3">Texto 3</option>
+                  <option value="text_4">Texto 4</option>
+                </select>
+              </label>
+              <Button variant="outline" onClick={() => updatePreferences.mutate({ autonomyMode, preferredTextSlot: preferredTextSlot || null })} className="h-9 w-full text-xs">Salvar preferências do agente</Button>
+            </div>
+          </section>
+
+          <section className="border-t border-border pt-6">
+            <h2 className="text-sm font-medium">Firebase <span className="text-muted-foreground">(preparação)</span></h2>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">Marque o estado quando concluir a configuração no console do Firebase. As credenciais admin ficam somente no servidor.</p>
+            <div className="mt-3 space-y-3">
+              <Input value={firebaseProjectId} onChange={event => setFirebaseProjectId(event.target.value)} placeholder="ID do projeto Firebase" className="h-9 text-xs" />
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex items-center gap-2 rounded-md border border-border p-2.5 text-xs text-muted-foreground">
+                  <input checked={firebaseAuthConfigured} onChange={event => setFirebaseAuthConfigured(event.target.checked)} type="checkbox" /> Auth configurado
+                </label>
+                <label className="flex items-center gap-2 rounded-md border border-border p-2.5 text-xs text-muted-foreground">
+                  <input checked={firestoreConfigured} onChange={event => setFirestoreConfigured(event.target.checked)} type="checkbox" /> Firestore configurado
+                </label>
+              </div>
+              <Button variant="outline" onClick={() => updatePreferences.mutate({ firebaseProjectId: firebaseProjectId || null, firebaseAuthConfigured, firestoreConfigured })} className="h-9 w-full text-xs">Salvar status do Firebase</Button>
+            </div>
+          </section>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
 }
 
 export default function Home() {
@@ -63,8 +196,7 @@ export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [liveMessages, setLiveMessages] = useState<LiveMessage[]>([]);
   const [running, setRunning] = useState(false);
-  const [workspaceOpen, setWorkspaceOpen] = useState(false);
-  const [workspaceMode, setWorkspaceMode] = useState<"code" | "preview">("code");
+  const [mobileView, setMobileView] = useState<"chat" | "code" | "preview">("chat");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const bootstrapped = useRef(false);
   const projects = trpc.studio.projects.list.useQuery(undefined, { enabled: isAuthenticated });
@@ -80,13 +212,13 @@ export default function Home() {
   const restoreArtifact = trpc.studio.artifacts.restore.useMutation({ onSuccess: () => { if (selectedProjectId) utils.studio.artifacts.list.invalidate({ projectId: selectedProjectId }); if (selectedArtifact) utils.studio.artifacts.versions.invalidate({ artifactId: selectedArtifact.id }); toast.success("Versão restaurada."); } });
 
   useEffect(() => { if (projects.data?.length && !selectedProjectId) setSelectedProjectId(projects.data[0].id); }, [projects.data, selectedProjectId]);
-  useEffect(() => { if (!isAuthenticated || projects.isLoading || projects.data?.length || bootstrapped.current) return; bootstrapped.current = true; createProject.mutate({ name: "Meu primeiro projeto", description: "Espaço inicial do Lunex 1.2", template: "blank" }); }, [isAuthenticated, projects.isLoading, projects.data, createProject]);
+  useEffect(() => { if (!isAuthenticated || projects.isLoading || projects.data?.length || bootstrapped.current) return; bootstrapped.current = true; createProject.mutate({ name: "Meu primeiro projeto", description: "Espaço inicial", template: "blank" }); }, [isAuthenticated, projects.isLoading, projects.data, createProject]);
   useEffect(() => { if (conversations.data?.length && !selectedConversationId) setSelectedConversationId(conversations.data[0].id); if (selectedProjectId && conversations.data && !conversations.data.length && !createConversation.isPending) createConversation.mutate({ projectId: selectedProjectId, title: "Nova conversa" }); }, [conversations.data, selectedConversationId, selectedProjectId, createConversation]);
   useEffect(() => { setSelectedArtifactId(artifacts.data?.[0]?.id); }, [selectedProjectId, artifacts.data]);
   useEffect(() => { setLiveMessages([]); }, [selectedConversationId]);
   const displayMessages = useMemo<LiveMessage[]>(() => [...(persistedMessages.data || []).map((message): LiveMessage => ({ id: message.id, role: message.role as LiveMessage["role"], content: message.content })), ...liveMessages], [persistedMessages.data, liveMessages]);
   const terminalEvents = useMemo(() => displayMessages.filter(message => message.role === "tool"), [displayMessages]);
-  const createNewProject = () => { const name = window.prompt("Nome do novo projeto", "Novo projeto Lunex"); if (name?.trim()) createProject.mutate({ name: name.trim(), template: "blank" }); };
+  const createNewProject = () => { const name = window.prompt("Nome do novo projeto", "Novo projeto"); if (name?.trim()) createProject.mutate({ name: name.trim(), template: "blank" }); };
   const sendPrompt = async () => {
     const content = prompt.trim(); if (!content || !selectedProjectId || !selectedConversationId || running) return;
     setPrompt(""); setRunning(true); const assistantId = `local-assistant-${Date.now()}`;
@@ -101,13 +233,167 @@ export default function Home() {
   };
 
   if (loading) return <LunexSplash />;
-  if (!isAuthenticated) return <main className="grid min-h-screen place-items-center bg-[#090a10] p-6"><div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#11121a] p-8 text-center shadow-2xl shadow-black/30"><LunexBrand className="justify-center" /><h1 className="mt-7 text-2xl font-semibold tracking-[-.04em] text-white">Seu estúdio de agentes está pronto.</h1><p className="mt-3 text-sm leading-6 text-slate-400">Converse, gere artefatos e acompanhe cada mudança em um só lugar.</p><Button onClick={() => startLogin()} className="mt-7 w-full bg-violet-600 text-white hover:bg-violet-500">Entrar no Lunex</Button></div></main>;
+
+  if (!isAuthenticated) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-background p-6">
+        <div className="w-full max-w-sm rounded-xl border border-border p-8 text-center">
+          <LunexBrand className="justify-center" />
+          <h1 className="mt-6 text-xl font-medium tracking-tight text-foreground">Seu estúdio de agentes está pronto.</h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">Converse, gere artefatos e acompanhe cada mudança em um só lugar.</p>
+          <Button onClick={() => startLogin()} className="mt-6 w-full">Entrar</Button>
+        </div>
+      </main>
+    );
+  }
+
   const rail = <ProjectsRail projects={projects.data || []} selectedId={selectedProjectId} onSelect={id => { setSelectedProjectId(id); setSelectedConversationId(undefined); }} onCreate={createNewProject} onSettings={() => setSettingsOpen(true)} />;
-  const projectName = projects.data?.find(project => project.id === selectedProjectId)?.name || "Carregando projeto…";
-  return <main className="h-screen overflow-hidden bg-[#1b1b1b] text-neutral-100">{settingsOpen && <Suspense fallback={null}><SettingsPanel open={settingsOpen} onOpenChange={setSettingsOpen} /></Suspense>}<div className="flex h-full"><div className="hidden w-[250px] shrink-0 border-r border-white/[.08] lg:block">{rail}</div>
-    <section className="flex min-w-0 flex-1 flex-col"><header className="flex h-14 shrink-0 items-center border-b border-white/[.08] px-3 sm:px-5"><Sheet><SheetTrigger asChild><Button variant="ghost" size="icon" className="mr-2 h-8 w-8 text-neutral-400 hover:bg-white/[.06] hover:text-white lg:hidden"><Menu className="h-4 w-4" /><span className="sr-only">Abrir projetos</span></Button></SheetTrigger><SheetContent side="left" className="w-[270px] border-white/10 bg-[#171717] p-0">{rail}</SheetContent></Sheet><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-neutral-100">{projectName}</p></div><div className="flex items-center gap-1"><Button variant="ghost" size="sm" onClick={() => { setWorkspaceMode("code"); setWorkspaceOpen(true); }} className="h-8 gap-1.5 rounded-md px-2.5 text-xs text-neutral-400 hover:bg-white/[.06] hover:text-white"><FileCode2 className="h-3.5 w-3.5" /><span className="hidden sm:inline">Artefatos</span></Button><Button variant="ghost" size="icon" onClick={() => selectedProjectId && createConversation.mutate({ projectId: selectedProjectId, title: "Nova conversa" })} className="h-8 w-8 text-neutral-400 hover:bg-white/[.06] hover:text-white"><MessageSquarePlus className="h-4 w-4" /><span className="sr-only">Nova conversa</span></Button></div></header>
-      <ScrollArea className="min-h-0 flex-1"><div className="mx-auto w-full max-w-3xl space-y-6 px-5 py-8 sm:px-8">{!displayMessages.length && <div className="mt-[14vh]"><div className="flex items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-lg bg-white/[.08] text-white"><Sparkles className="h-4 w-4" /></div><h1 className="text-2xl font-medium tracking-[-.04em] text-white">Em que posso ajudar?</h1></div><p className="mt-4 max-w-xl text-sm leading-6 text-neutral-400">Descreva o que quer construir. O Lunex pode planejar a solução, gerar os arquivos e manter o trabalho organizado no mesmo projeto.</p><div className="mt-6 flex flex-wrap gap-2">{["Criar uma landing page", "Planejar uma aplicação", "Explicar este projeto"].map(suggestion => <button key={suggestion} onClick={() => setPrompt(suggestion)} className="rounded-md border border-white/[.1] px-3 py-1.5 text-xs text-neutral-400 transition hover:bg-white/[.06] hover:text-white">{suggestion}</button>)}</div></div>}{displayMessages.map(message => message.role === "tool" ? <div key={message.id} className="flex items-center gap-2 text-xs text-neutral-500"><TerminalSquare className="h-3.5 w-3.5" />{message.content}</div> : <article key={message.id} className={cn("flex gap-3", message.role === "user" && "flex-row-reverse")}><div className={cn("grid h-7 w-7 shrink-0 place-items-center rounded-full", message.role === "assistant" ? "bg-white/[.1] text-white" : "bg-neutral-700 text-neutral-200")}>{message.role === "assistant" ? <Bot className="h-3.5 w-3.5" /> : <UserRound className="h-3.5 w-3.5" />}</div><div className={cn("min-w-0 max-w-[88%] px-0.5 py-0.5 text-[15px] leading-7", message.role === "user" ? "text-white" : "text-neutral-300")}>{message.content ? <MarkdownMessage content={message.content} /> : message.isStreaming ? <Loader2 className="h-4 w-4 animate-spin text-neutral-400" /> : null}</div></article>)}</div></ScrollArea>
-      <div className="shrink-0 px-4 pb-5 pt-3 sm:px-8"><div className="mx-auto max-w-3xl rounded-2xl border border-white/[.12] bg-[#242424] p-2 shadow-[0_14px_40px_rgba(0,0,0,.14)] focus-within:border-white/[.26]"><Textarea value={prompt} onChange={event => setPrompt(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendPrompt(); } }} placeholder="Pergunte qualquer coisa" className="min-h-14 resize-none border-0 bg-transparent px-2 py-1.5 text-sm text-white placeholder:text-neutral-500 focus-visible:ring-0" /><div className="flex items-center justify-between px-1"><div className="flex gap-1"><Button variant="ghost" size="icon" className="h-7 w-7 text-neutral-500 hover:bg-white/[.06] hover:text-white"><Plus className="h-4 w-4" /><span className="sr-only">Anexar</span></Button><Button variant="ghost" size="sm" className="h-7 gap-1 rounded-md px-2 text-[11px] text-neutral-400 hover:bg-white/[.06] hover:text-white"><CircleDot className="h-3 w-3" />Auto <ChevronDown className="h-3 w-3" /></Button></div><Button size="icon" disabled={!prompt.trim() || running} onClick={sendPrompt} className="h-8 w-8 rounded-lg bg-white text-neutral-900 hover:bg-neutral-200 disabled:opacity-40"><Send className="h-3.5 w-3.5" /></Button></div></div><p className="mx-auto mt-2 max-w-3xl px-1 text-center text-[10px] text-neutral-600">O Lunex pode cometer erros. Revise as alterações antes de publicar.</p></div></section>
-    <Sheet open={workspaceOpen} onOpenChange={setWorkspaceOpen}><SheetContent side="right" className="w-full border-white/[.1] bg-[#171717] p-0 text-neutral-100 sm:max-w-[760px]"><div className="flex h-full min-h-0 flex-col"><div className="flex h-14 shrink-0 items-center justify-between border-b border-white/[.08] px-5"><div><p className="text-sm font-medium">Artefatos</p><p className="mt-0.5 text-[11px] text-neutral-500">Arquivos e mudanças deste projeto</p></div></div><div className="flex min-h-0 flex-1"><aside className="hidden w-[190px] shrink-0 border-r border-white/[.08] p-2 sm:block"><p className="px-2 py-2 text-[10px] font-medium uppercase tracking-[.14em] text-neutral-500">Arquivos</p><div className="space-y-0.5">{artifacts.data?.map(artifact => <button key={artifact.id} onClick={() => { setSelectedArtifactId(artifact.id); setWorkspaceMode("code"); }} className={cn("flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-xs", selectedArtifact?.id === artifact.id ? "bg-white/[.08] text-white" : "text-neutral-500 hover:bg-white/[.05] hover:text-neutral-300")}><FileCode2 className="h-3.5 w-3.5" /><span className="truncate">{artifact.filePath}</span></button>)}{!artifacts.data?.length && <p className="px-2 py-5 text-xs leading-5 text-neutral-600">Os arquivos aparecerão aqui quando o agente trabalhar.</p>}</div></aside><div className="min-w-0 flex-1 p-3"><Suspense fallback={<div className="grid h-full min-h-56 place-items-center text-sm text-neutral-500">Abrindo artefatos…</div>}><ArtifactWorkspace artifact={selectedArtifact} versions={versions.data || []} diffLines={diff.data?.lines || []} activeTab={workspaceMode} onActiveTabChange={tab => setWorkspaceMode(tab === "preview" ? "preview" : "code")} saving={updateArtifact.isPending || restoreArtifact.isPending} onSave={content => selectedArtifact && updateArtifact.mutate({ artifactId: selectedArtifact.id, content, summary: "Edição manual no Lunex" })} onRestore={version => selectedArtifact && restoreArtifact.mutate({ artifactId: selectedArtifact.id, version })} /></Suspense></div></div>{terminalEvents.length > 0 && <div className="shrink-0 border-t border-white/[.08] px-5 py-3 font-mono text-[11px] leading-5 text-neutral-500"><span className="mr-2 text-neutral-400">Atividade:</span>{terminalEvents[terminalEvents.length - 1]?.content}</div>}</div></SheetContent></Sheet>
-  </div></main>;
+
+  return (
+    <main className="h-screen overflow-hidden bg-background text-foreground">
+      <SettingsPanel open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <div className="flex h-full">
+        <div className="hidden lg:block">{rail}</div>
+
+        <section className={cn("flex min-w-0 flex-1 flex-col border-r border-border pb-14 md:pb-0 xl:max-w-[460px]", mobileView !== "chat" && "hidden md:flex")}>
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-3 sm:px-4">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 lg:hidden"><Menu className="h-4 w-4" /></Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[240px] border-border bg-sidebar p-0">{rail}</SheetContent>
+            </Sheet>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">{projects.data?.find(project => project.id === selectedProjectId)?.name || "Carregando projeto…"}</p>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => selectedProjectId && createConversation.mutate({ projectId: selectedProjectId, title: "Nova conversa" })} className="h-8 w-8 text-muted-foreground">
+              <MessageSquarePlus className="h-4 w-4" />
+            </Button>
+          </header>
+
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="mx-auto w-full max-w-2xl space-y-6 px-4 py-8 sm:px-6">
+              {!displayMessages.length && (
+                <div className="mt-[14vh] text-center">
+                  <h1 className="text-xl font-medium tracking-tight text-foreground">O que vamos construir?</h1>
+                  <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">Descreva a ideia. O agente planeja, cria os arquivos e mostra as mudanças em tempo real.</p>
+                  <div className="mt-5 flex flex-wrap justify-center gap-2">
+                    {["Criar landing page", "Gerar dashboard", "Explicar este projeto"].map(suggestion => (
+                      <button key={suggestion} onClick={() => setPrompt(suggestion)} className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition hover:border-foreground/30 hover:text-foreground">
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {displayMessages.map(message =>
+                message.role === "tool" ? (
+                  <div key={message.id} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs text-muted-foreground">
+                    <TerminalSquare className="h-3.5 w-3.5" />
+                    {message.content}
+                  </div>
+                ) : (
+                  <article key={message.id} className={cn("flex gap-3", message.role === "user" && "flex-row-reverse")}>
+                    <div className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-full text-muted-foreground", message.role === "assistant" ? "bg-transparent" : "bg-muted")}>
+                      {message.role === "assistant" ? <Bot className="h-3.5 w-3.5" /> : <UserRound className="h-3.5 w-3.5" />}
+                    </div>
+                    <div className={cn("min-w-0 max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-6", message.role === "user" ? "bg-muted text-foreground" : "text-foreground")}>
+                      {message.content ? <MarkdownMessage content={message.content} /> : message.isStreaming ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : null}
+                    </div>
+                  </article>
+                )
+              )}
+            </div>
+          </ScrollArea>
+
+          <div className="shrink-0 border-t border-border p-3 sm:p-4">
+            <div className="mx-auto max-w-2xl rounded-2xl border border-border p-2 focus-within:border-foreground/30">
+              <Textarea
+                value={prompt}
+                onChange={event => setPrompt(event.target.value)}
+                onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendPrompt(); } }}
+                placeholder="Peça algo ao agente…"
+                className="min-h-14 resize-none border-0 bg-transparent px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-0"
+              />
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><Plus className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="sm" className="h-7 gap-1 rounded-md px-2 text-[11px] text-muted-foreground">Auto <ChevronDown className="h-3 w-3" /></Button>
+                </div>
+                <Button size="icon" disabled={!prompt.trim() || running} onClick={sendPrompt} className="h-8 w-8 rounded-lg disabled:opacity-40">
+                  <Send className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className={cn("min-w-0 flex-1 bg-background p-3 pb-16 lg:p-4", mobileView === "chat" && "hidden md:block")}>
+          <div className="mb-2 flex items-center justify-between md:hidden">
+            <span className="text-xs font-medium text-muted-foreground">{mobileView === "preview" ? "Preview" : "Código"}</span>
+          </div>
+          <div className="flex h-full min-h-0 gap-3">
+            <aside className="hidden w-44 shrink-0 rounded-lg border border-border p-2 xl:block">
+              <p className="px-2 py-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Arquivos</p>
+              <div className="space-y-0.5">
+                {artifacts.data?.map(artifact => (
+                  <button
+                    key={artifact.id}
+                    onClick={() => setSelectedArtifactId(artifact.id)}
+                    className={cn("flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs", selectedArtifact?.id === artifact.id ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground")}
+                  >
+                    <FileCode2 className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{artifact.filePath}</span>
+                  </button>
+                ))}
+                {!artifacts.data?.length && <p className="px-2 py-4 text-xs leading-5 text-muted-foreground">Os arquivos criados aparecerão aqui.</p>}
+              </div>
+            </aside>
+
+            <div className="min-w-0 flex-1">
+              <ArtifactWorkspace
+                artifact={selectedArtifact}
+                versions={versions.data || []}
+                diffLines={diff.data?.lines || []}
+                activeTab={mobileView === "preview" ? "preview" : "code"}
+                onActiveTabChange={tab => { if (tab === "preview") setMobileView("preview"); if (tab === "code") setMobileView("code"); }}
+                saving={updateArtifact.isPending || restoreArtifact.isPending}
+                onSave={content => selectedArtifact && updateArtifact.mutate({ artifactId: selectedArtifact.id, content, summary: "Edição manual" })}
+                onRestore={version => selectedArtifact && restoreArtifact.mutate({ artifactId: selectedArtifact.id, version })}
+              />
+            </div>
+
+            <aside aria-label="Terminal do agente" className="hidden w-[210px] shrink-0 flex-col overflow-hidden rounded-lg border border-border xl:flex">
+              <div className="flex h-9 items-center gap-2 border-b border-border px-3 text-xs font-medium text-muted-foreground">
+                <TerminalSquare className="h-3.5 w-3.5" />
+                Terminal
+              </div>
+              <ScrollArea className="min-h-0 flex-1">
+                <div className="space-y-2 p-3 font-mono text-[11px] leading-5 text-muted-foreground">
+                  <p>agente conectado</p>
+                  <p>projeto: {selectedProjectId?.slice(0, 8) || "—"}</p>
+                  {terminalEvents.length ? terminalEvents.map(event => <p key={event.id} className="break-words text-foreground/80">{event.content}</p>) : <p className="pt-2">As etapas do agente aparecerão aqui.</p>}
+                </div>
+              </ScrollArea>
+            </aside>
+          </div>
+        </section>
+
+        <nav aria-label="Navegação do estúdio" className="fixed inset-x-0 bottom-0 z-30 grid h-14 grid-cols-4 border-t border-border bg-background px-2 md:hidden">
+          <button aria-pressed={mobileView === "chat"} onClick={() => setMobileView("chat")} className={cn("grid place-items-center text-[10px]", mobileView === "chat" ? "text-foreground" : "text-muted-foreground")}>
+            <MessageSquarePlus className="h-4 w-4" /><span>Chat</span>
+          </button>
+          <button aria-pressed={mobileView === "code"} onClick={() => setMobileView("code")} className={cn("grid place-items-center text-[10px]", mobileView === "code" ? "text-foreground" : "text-muted-foreground")}>
+            <FileCode2 className="h-4 w-4" /><span>Código</span>
+          </button>
+          <button aria-pressed={mobileView === "preview"} onClick={() => setMobileView("preview")} className={cn("grid place-items-center text-[10px]", mobileView === "preview" ? "text-foreground" : "text-muted-foreground")}>
+            <FileCode2 className="h-4 w-4" /><span>Preview</span>
+          </button>
+          <button onClick={() => setSettingsOpen(true)} className="grid place-items-center text-[10px] text-muted-foreground">
+            <Settings2 className="h-4 w-4" /><span>Ajustes</span>
+          </button>
+        </nav>
+      </div>
+    </main>
+  );
 }

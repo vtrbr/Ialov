@@ -50,3 +50,7 @@
 - [x] Atualizar o `todo.md` também no repositório sincronizado após concluir o push.
 - [x] Otimizar o cliente com carregamento sob demanda do workspace de artefatos e painéis contextuais, preservando a funcionalidade.
 - [x] Registrar evidência verificável da redução de peso do bundle antes de concluir a revisão de leveza.
+- [x] Inspecionar o ZIP de interface enviado e confirmar os arquivos que serão substituídos sem alterações de conteúdo.
+- [x] Substituir fielmente os arquivos de `client/src` pelo pacote de interface fornecido pelo usuário.
+- [x] Validar tipagem, testes, build e visualização da interface recebida sem modificá-la.
+- [ ] Salvar checkpoint e sincronizar no GitHub a interface fornecida pelo usuário.

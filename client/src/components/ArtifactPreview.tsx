@@ -34,19 +34,18 @@ export function ArtifactPreview({ content, mode, title = "Preview do artefato" }
 
   if (mode === "none") {
     return (
-      <div className="flex h-full min-h-52 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/10 bg-[#11121a] p-6 text-center text-slate-400">
-        <FileCode2 className="h-7 w-7 text-slate-500" />
+      <div className="flex h-full min-h-52 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border p-6 text-center text-muted-foreground">
+        <FileCode2 className="h-5 w-5" />
         <p className="text-sm">Este artefato não possui preview executável.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full min-h-52 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#11121a]">
-      <div className="flex h-9 shrink-0 items-center gap-2 border-b border-white/10 px-3 text-xs text-slate-400">
+    <div className="flex h-full min-h-52 flex-col overflow-hidden rounded-lg border border-border">
+      <div className="flex h-8 shrink-0 items-center gap-2 border-b border-border px-3 text-xs text-muted-foreground">
         <Eye className="h-3.5 w-3.5" />
         <span className="truncate">{title}</span>
-        <span className="ml-auto rounded bg-emerald-400/10 px-1.5 py-0.5 text-[10px] text-emerald-300">isolado</span>
       </div>
       <iframe title={title} sandbox={previewSandbox} srcDoc={srcDoc} className="min-h-0 flex-1 bg-white" />
     </div>
