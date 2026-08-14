@@ -59,3 +59,9 @@
 - [ ] Cobrir o onboarding e as exportações com testes, validações visuais e sincronização no GitHub.
 - [x] Conectar o assistente a um status real e seguro de compatibilidade Firebase no backend, sem expor credenciais administrativas.
 - [x] Adicionar feedback de carregamento e erro às consultas de provedores e preferências do assistente inicial.
+- [x] Adicionar testes de interface para o assistente, cobrindo carregamento, erro, status Firebase e salvamento seguro de preferências.
+- [x] Adicionar testes da exportação no cliente, cobrindo Markdown, PDF e estados de erro dos downloads.
+- [x] Registrar validação visual explícita dos controles de exportação e do assistente em desktop e mobile.
+- [x] Cobrir falhas de criação de URL e de geração PDF com feedback apropriado ao usuário no fluxo de exportação.
+- [x] Registrar uma demonstração visual interativa do assistente aberto e do menu de exportação acionável em desktop e mobile.
+- [x] Capturar o assistente e o menu de exportação explicitamente abertos em desktop e mobile por uma prévia sem dependência de sessão.

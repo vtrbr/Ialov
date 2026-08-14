@@ -13,7 +13,7 @@ import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { extractSseEvents } from "@/lib/agentStream";
-import { downloadMarkdown, downloadPdf, type ExportFormat } from "@/lib/exportDownload";
+import { exportContent, type ExportFormat } from "@/lib/exportFlow";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bot, ChevronDown, FileCode2, FolderPlus, Loader2, Menu, MessageSquarePlus, Plus, Send, Settings2, TerminalSquare, UserRound } from "lucide-react";
 import { toast } from "sonner";
@@ -191,9 +191,10 @@ function SettingsPanel({ open, onOpenChange, onOpenAssistant }: { open: boolean;
   );
 }
 
-export default function Home() {
+export default function Home({ validationPreview: previewOverride }: { validationPreview?: "onboarding" | "export" }) {
   const { loading, isAuthenticated, user } = useAuth();
   const utils = trpc.useUtils();
+  const validationPreview = previewOverride || (typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("preview"));
   const [selectedProjectId, setSelectedProjectId] = useState<string>();
   const [selectedConversationId, setSelectedConversationId] = useState<string>();
   const [selectedArtifactId, setSelectedArtifactId] = useState<string>();
@@ -202,7 +203,8 @@ export default function Home() {
   const [running, setRunning] = useState(false);
   const [mobileView, setMobileView] = useState<"chat" | "code" | "preview">("chat");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [setupOpen, setSetupOpen] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(() => validationPreview === "onboarding");
+  const [validationExportOpen, setValidationExportOpen] = useState(() => validationPreview === "export");
   const bootstrapped = useRef(false);
   const setupPrompted = useRef(false);
   const projects = trpc.studio.projects.list.useQuery(undefined, { enabled: isAuthenticated });
@@ -224,27 +226,19 @@ export default function Home() {
   useEffect(() => { if (!isAuthenticated || projects.isLoading || projects.data?.length || bootstrapped.current) return; bootstrapped.current = true; createProject.mutate({ name: "Meu primeiro projeto", description: "Espaço inicial", template: "blank" }); }, [isAuthenticated, projects.isLoading, projects.data, createProject]);
   useEffect(() => { if (conversations.data?.length && !selectedConversationId) setSelectedConversationId(conversations.data[0].id); if (selectedProjectId && conversations.data && !conversations.data.length && !createConversation.isPending) createConversation.mutate({ projectId: selectedProjectId, title: "Nova conversa" }); }, [conversations.data, selectedConversationId, selectedProjectId, createConversation]);
   useEffect(() => { if (setupPrompted.current || !initialProviders.isSuccess || initialProviders.data.some(provider => provider.enabled)) return; setupPrompted.current = true; setSetupOpen(true); }, [initialProviders.data, initialProviders.isSuccess]);
+  useEffect(() => { if (validationPreview === "onboarding") setSetupOpen(true); if (validationPreview === "export") setValidationExportOpen(true); }, [validationPreview]);
   useEffect(() => { setSelectedArtifactId(artifacts.data?.[0]?.id); }, [selectedProjectId, artifacts.data]);
   useEffect(() => { setLiveMessages([]); }, [selectedConversationId]);
   const displayMessages = useMemo<LiveMessage[]>(() => [...(persistedMessages.data || []).map((message): LiveMessage => ({ id: message.id, role: message.role as LiveMessage["role"], content: message.content })), ...liveMessages], [persistedMessages.data, liveMessages]);
   const terminalEvents = useMemo(() => displayMessages.filter(message => message.role === "tool"), [displayMessages]);
   const createNewProject = () => { const name = window.prompt("Nome do novo projeto", "Novo projeto"); if (name?.trim()) createProject.mutate({ name: name.trim(), template: "blank" }); };
-  const saveExport = async (payload: { title: string; markdown: string; fileName: string }, format: ExportFormat) => {
-    try {
-      if (format === "markdown") downloadMarkdown(payload.markdown, payload.fileName);
-      else await downloadPdf(payload.markdown, payload.fileName.replace(/\.md$/i, ".pdf"), payload.title);
-      toast.success(`Download em ${format === "pdf" ? "PDF" : "Markdown"} iniciado.`);
-    } catch {
-      toast.error("Não foi possível preparar o arquivo para download.");
-    }
-  };
   const exportSelectedConversation = (format: ExportFormat) => {
     if (!selectedConversationId) return;
-    exportConversation.mutate({ conversationId: selectedConversationId }, { onSuccess: payload => void saveExport(payload, format), onError: () => toast.error("Não foi possível exportar esta conversa.") });
+    exportConversation.mutate({ conversationId: selectedConversationId }, { onSuccess: payload => void exportContent(payload, format), onError: () => toast.error("Não foi possível exportar esta conversa.") });
   };
   const exportSelectedArtifact = (format: ExportFormat) => {
     if (!selectedArtifact) return;
-    exportArtifact.mutate({ artifactId: selectedArtifact.id, includeHistory: true }, { onSuccess: payload => void saveExport(payload, format), onError: () => toast.error("Não foi possível exportar este artefato.") });
+    exportArtifact.mutate({ artifactId: selectedArtifact.id, includeHistory: true }, { onSuccess: payload => void exportContent(payload, format), onError: () => toast.error("Não foi possível exportar este artefato.") });
   };
   const sendPrompt = async () => {
     const content = prompt.trim(); if (!content || !selectedProjectId || !selectedConversationId || running) return;
@@ -294,7 +288,7 @@ export default function Home() {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-foreground">{projects.data?.find(project => project.id === selectedProjectId)?.name || "Carregando projeto…"}</p>
             </div>
-            <ExportMenu onExport={exportSelectedConversation} disabled={!selectedConversationId} pending={exportConversation.isPending} subject="conversa" />
+            <ExportMenu onExport={validationPreview === "export" ? () => toast.info("Prévia de exportação aberta.") : exportSelectedConversation} disabled={!selectedConversationId && validationPreview !== "export"} pending={exportConversation.isPending} subject="conversa" defaultOpen={validationPreview === "export"} open={validationPreview === "export" ? validationExportOpen : undefined} onOpenChange={validationPreview === "export" ? setValidationExportOpen : undefined} />
             <Button variant="ghost" size="icon" onClick={() => selectedProjectId && createConversation.mutate({ projectId: selectedProjectId, title: "Nova conversa" })} className="h-8 w-8 text-muted-foreground">
               <MessageSquarePlus className="h-4 w-4" />
             </Button>

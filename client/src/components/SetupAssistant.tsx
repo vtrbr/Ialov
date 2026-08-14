@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, CircleAlert, KeyRound, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -86,13 +86,13 @@ export function SetupAssistant({ open, onOpenChange }: { open: boolean; onOpenCh
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[min(760px,calc(100vh-2rem))] overflow-y-auto p-0 sm:max-w-2xl" aria-describedby="assistente-descricao">
+      <DialogContent className="max-h-[min(760px,calc(100vh-2rem))] overflow-y-auto p-0 sm:max-w-2xl">
         <DialogHeader className="border-b border-border px-5 py-5 sm:px-6">
           <div className="flex items-start gap-3 pr-7">
             <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted"><Sparkles className="h-4 w-4 text-foreground" /></div>
             <div>
               <DialogTitle>Configuração inicial</DialogTitle>
-              <DialogDescription id="assistente-descricao" className="mt-1 text-xs leading-5">Configure o estúdio em etapas. As chaves de IA são enviadas diretamente ao servidor cifrado; o assistente nunca as exibe novamente.</DialogDescription>
+              <DialogDescription className="mt-1 text-xs leading-5">Configure o estúdio em etapas. As chaves de IA são enviadas diretamente ao servidor cifrado; o assistente nunca as exibe novamente.</DialogDescription>
             </div>
           </div>
           <div className="mt-5 grid grid-cols-3 gap-2" aria-label="Etapas da configuração">
@@ -142,7 +142,6 @@ export function SetupAssistant({ open, onOpenChange }: { open: boolean; onOpenCh
 
           {step === "review" && (
             <section className="space-y-4">
-              <div className="rounded-lg border border-border p-4"><p className="text-sm font-medium text-foreground">Seu estúdio está pronto para avançar.</p><dl className="mt-3 space-y-2 text-xs"><div className="flex justify-between gap-4"><dt className="text-muted-foreground">Rotas de IA ativas</dt><dd className="font-medium text-foreground">{configuredCount}/5</dd></div><div className="flex justify-between gap-4"><dt className="text-muted-foreground">Projeto Firebase</dt><dd className="truncate font-medium text-foreground">{firebaseProjectId || "Ainda não informado"}</dd></div><div className="flex justify-between gap-4"><dt className="text-muted-foreground">Etapas Firebase</dt><dd className="font-medium text-foreground">{[firebaseAuthConfigured, firestoreConfigured].filter(Boolean).length}/2</dd></div></dl></div>
               <div className="rounded-lg border border-border p-4"><p className="text-sm font-medium text-foreground">Seu estúdio está pronto para avançar.</p><dl className="mt-3 space-y-2 text-xs"><div className="flex justify-between gap-4"><dt className="text-muted-foreground">Rotas de IA ativas</dt><dd className="font-medium text-foreground">{configuredCount}/5</dd></div><div className="flex justify-between gap-4"><dt className="text-muted-foreground">Projeto Firebase</dt><dd className="truncate font-medium text-foreground">{firebaseProjectId || "Ainda não informado"}</dd></div><div className="flex justify-between gap-4"><dt className="text-muted-foreground">Etapas Firebase</dt><dd className="font-medium text-foreground">{[firebaseAuthConfigured, firestoreConfigured].filter(Boolean).length}/2</dd></div><div className="flex justify-between gap-4"><dt className="text-muted-foreground">Compatibilidade no servidor</dt><dd className={cn("font-medium", firebaseStatus.data?.enabled ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400")}>{firebaseStatus.data?.enabled ? "Pronta" : "Pendente"}</dd></div></dl></div>
               <p className="text-xs leading-5 text-muted-foreground">Você pode voltar a este assistente em <strong className="font-medium text-foreground">Configurações</strong> sempre que quiser trocar uma chave, habilitar um fallback ou concluir o Firebase.</p>
             </section>

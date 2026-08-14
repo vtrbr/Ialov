@@ -5,12 +5,21 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import ValidationPreview from "./pages/ValidationPreview";
+
+const OnboardingPreview = () => <Home validationPreview="onboarding" />;
+const ExportPreview = () => <Home validationPreview="export" />;
+const ExportOnlyPreview = () => <ValidationPreview mode="export" />;
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
+      {import.meta.env.DEV && <Route path={"/__preview/onboarding"}><OnboardingPreview /></Route>}
+      {import.meta.env.DEV && <Route path={"/__preview/export"}><ExportPreview /></Route>}
+      {import.meta.env.DEV && <Route path={"/__preview/validation"}><ValidationPreview /></Route>}
+      {import.meta.env.DEV && <Route path={"/__preview/export-menu"}><ExportOnlyPreview /></Route>}
+      <Route path={"/"}><Home /></Route>
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
