@@ -1,7 +1,7 @@
 # Project TODO
 
 - [ ] Sincronizar a base de trabalho do Lunex 1.2 com o repositório GitHub `vtrbr/Ialov` sem versionar segredos.
-- [ ] Documentar arquitetura do produto, contratos de integração e as limitações de execução do MVP.
+- [x] Documentar arquitetura do produto, contratos de integração e as limitações de execução do MVP.
 - [ ] Criar esquema relacional compatível com futura projeção para Firebase/Firestore: projetos, conversas, mensagens, artefatos, versões, execuções e configurações de provedor.
 - [ ] Aplicar a migração do banco e criar procedimentos tRPC tipados para projetos, conversas, artefatos, checkpoints e preferências.
 - [ ] Implementar isolamento por proprietário em todas as operações persistentes.
