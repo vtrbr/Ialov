@@ -28,7 +28,7 @@
 - [x] Validar vínculo de projeto e conversa antes de criar uma execução do agente.
 - [x] Validar propriedade da execução e projeto antes de gravar eventos de uma execução.
 - [x] Verificar build, testes, responsividade em desktop e mobile, acessibilidade básica e falhas de console.
-- [ ] Criar checkpoint da entrega completa.
+- [x] Criar checkpoint da entrega completa.
 - [x] Entregar documento com variáveis obrigatórias, configuração do Firebase e regras seguras do Firestore.
 - [x] Executar auditoria verificável de acessibilidade básica para landmarks, navegação por teclado, foco, rótulos e contraste da interface principal e do workspace.
 - [x] Corrigir o erro de runtime de importação de `server/routers/agent` e revalidar o console do navegador sem falhas.
