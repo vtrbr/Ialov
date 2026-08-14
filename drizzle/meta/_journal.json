@@ -8,6 +8,13 @@
       "when": 1786728711346,
       "tag": "0000_light_garia",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1786729111783,
+      "tag": "0001_cold_sprite",
+      "breakpoints": true
     }
   ]
 }
