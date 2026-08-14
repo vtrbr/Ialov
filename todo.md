@@ -1,0 +1,24 @@
+# Project TODO
+
+- [ ] Sincronizar a base de trabalho do Lunex 1.2 com o repositório GitHub `vtrbr/Ialov` sem versionar segredos.
+- [ ] Documentar arquitetura do produto, contratos de integração e as limitações de execução do MVP.
+- [ ] Criar esquema relacional compatível com futura projeção para Firebase/Firestore: projetos, conversas, mensagens, artefatos, versões, execuções e configurações de provedor.
+- [ ] Aplicar a migração do banco e criar procedimentos tRPC tipados para projetos, conversas, artefatos, checkpoints e preferências.
+- [ ] Implementar isolamento por proprietário em todas as operações persistentes.
+- [ ] Implementar cofre de configurações de provedores sem retornar chaves ao cliente e com marcadores de chave configurada.
+- [ ] Implementar registro de quatro provedores de IA de texto com estratégia de prioridade, round-robin e fallback por falha recuperável.
+- [ ] Implementar adaptador seguro de geração de imagem separado do pool de texto e suporte a resposta de erro sem vazar credenciais.
+- [ ] Implementar streaming de eventos do agente, incluindo mensagens parciais, etapas resumidas, chamadas de ferramenta e estados de erro.
+- [ ] Implementar alertas para o proprietário em novos cadastros e falhas críticas do motor do agente.
+- [ ] Implementar parser de artefatos e operações incrementais de criação e substituição com validação de contexto.
+- [ ] Implementar histórico versionado de artefatos, comparação visual de versões e restauração não destrutiva.
+- [ ] Implementar preview em iframe sandboxado para HTML e componentes de demonstração com atualização automática.
+- [ ] Criar logotipo, favicon e splash screen próprios do Lunex 1.2 e publicar os ativos no armazenamento estático do projeto.
+- [ ] Criar interface escura responsiva inspirada nas referências: navegação de projetos, chat, trilha do agente, painel de artefato, editor, preview e terminal.
+- [ ] Adaptar a experiência para telas móveis com alternância acessível entre chat, código, preview e ajustes.
+- [ ] Criar painel de configurações protegido para registrar provedores, estado das chaves, preferências de autonomia e status do Firebase.
+- [ ] Implementar autenticação da plataforma com sessão persistente e camada de compatibilidade para futura migração ao Firebase Auth.
+- [ ] Escrever testes Vitest para isolamento, configuração de provedores, fallback, validação de diffs e persistência.
+- [ ] Verificar build, testes, responsividade em desktop e mobile, acessibilidade básica e falhas de console.
+- [ ] Criar checkpoint da entrega completa e enviar código final para `vtrbr/Ialov`.
+- [ ] Entregar documento com variáveis obrigatórias, configuração do Firebase e regras seguras do Firestore.
