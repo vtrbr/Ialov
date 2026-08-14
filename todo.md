@@ -56,7 +56,7 @@
 - [x] Salvar checkpoint e sincronizar no GitHub a interface fornecida pelo usuário.
 - [x] Criar assistente visual de configuração inicial para guiar o cadastro seguro das quatro chaves de texto, chave de imagem e Firebase.
 - [x] Implementar exportação autorizada de conversas e artefatos em Markdown e PDF, sem expor segredos ou dados de outros usuários.
-- [ ] Cobrir o onboarding e as exportações com testes, validações visuais e sincronização no GitHub.
+- [x] Cobrir o onboarding e as exportações com testes, validações visuais e sincronização no GitHub.
 - [x] Conectar o assistente a um status real e seguro de compatibilidade Firebase no backend, sem expor credenciais administrativas.
 - [x] Adicionar feedback de carregamento e erro às consultas de provedores e preferências do assistente inicial.
 - [x] Adicionar testes de interface para o assistente, cobrindo carregamento, erro, status Firebase e salvamento seguro de preferências.
