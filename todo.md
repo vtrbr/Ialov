@@ -21,6 +21,9 @@
 - [ ] Escrever testes Vitest para isolamento, configuração de provedores, fallback, validação de diffs e persistência.
 - [x] Sanitizar a listagem de provedores e testar que nenhuma chave ou ciphertext seja devolvido ao cliente.
 - [x] Emitir eventos reais de início e término de ferramenta no motor do agente.
+- [ ] Implementar e testar a extração de artefatos do agente, diferenciando criação e substituição sob o mesmo projeto e conversa.
+- [ ] Criar no frontend a visualização de histórico, diff e restauração acionável de artefatos.
+- [ ] Integrar o preview sandboxado ao painel de artefato para refletir automaticamente as alterações do editor.
 - [x] Validar que a conversa opcional de um artefato pertence ao mesmo proprietário e projeto antes da gravação.
 - [x] Validar vínculo de projeto e conversa antes de criar uma execução do agente.
 - [x] Validar propriedade da execução e projeto antes de gravar eventos de uma execução.

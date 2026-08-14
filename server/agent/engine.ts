@@ -2,10 +2,10 @@ import * as db from "../db";
 import { notifyOwner } from "../_core/notification";
 import { decryptProviderSecret } from "./crypto";
 import { streamTextProvider } from "./providers";
+import { artifactTitle, parseAgentArtifacts } from "./artifacts";
 import { ProviderRequestError, type AgentInputMessage, type AgentStreamEvent, type DecryptedProviderConfig } from "./types";
 
 const cursors = new Map<number, number>();
-const artifactPattern = /```([\w+-]+)?(?:\s+([^\n]+))?\n([\s\S]*?)```/g;
 
 function event(runId: string, sequence: number, type: AgentStreamEvent["type"], payload: Record<string, unknown>): AgentStreamEvent {
   return { runId, sequence, type, payload, createdAt: new Date().toISOString() };
@@ -20,17 +20,6 @@ function orderedConfigs<T>(ownerId: number, configs: T[]) {
 
 function recoverable(error: unknown) {
   return error instanceof ProviderRequestError && error.options.recoverable;
-}
-
-function titleForArtifact(path: string) {
-  const basename = path.trim().split("/").pop();
-  return basename || "artifact.txt";
-}
-
-function previewMode(language: string): "none" | "html" | "react" {
-  if (language.toLowerCase() === "html") return "html";
-  if (["tsx", "jsx"].includes(language.toLowerCase())) return "react";
-  return "none";
 }
 
 async function* demoResponse(runId: string, emit: (type: AgentStreamEvent["type"], payload: Record<string, unknown>) => Promise<AgentStreamEvent>, prompt: string) {
@@ -126,23 +115,22 @@ export async function* runAgent(input: { ownerId: number; projectId: string; con
       content: generated,
     });
 
-    artifactPattern.lastIndex = 0;
-    for (const match of Array.from(generated.matchAll(artifactPattern))) {
-      const language = match[1] || "text";
-      const filePath = match[2]?.trim() || `artifacts/generated-${Date.now()}.${language}`;
-      const content = match[3] || "";
-      const artifact = await db.createArtifact(input.ownerId, {
+    for (const extracted of parseAgentArtifacts(generated)) {
+      const result = await db.upsertExtractedArtifact(input.ownerId, {
         projectId: input.projectId,
         conversationId: input.conversationId,
-        title: titleForArtifact(filePath),
-        filePath,
-        language,
-        kind: language === "html" ? "html" : "code",
-        content,
-        previewMode: previewMode(language),
-        summary: "Artefato extraído da resposta do agente",
+        title: artifactTitle(extracted.filePath),
+        ...extracted,
       });
-      if (artifact) yield await emit("artifact.detected", { artifactId: artifact.id, filePath, language, previewMode: artifact.previewMode });
+      if (result.artifact) {
+        yield await emit("artifact.detected", {
+          artifactId: result.artifact.id,
+          filePath: extracted.filePath,
+          language: extracted.language,
+          previewMode: extracted.previewMode,
+          action: result.action,
+        });
+      }
     }
 
     await db.updateAgentRun(input.ownerId, runId, { status: "completed", completedAt: new Date() });

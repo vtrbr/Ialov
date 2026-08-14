@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "../db";
+import { applyTextPatches, lineDiff } from "../artifacts/diff";
 import { protectedProcedure, router } from "../_core/trpc";
 
 const projectId = z.string().min(8).max(32);
@@ -127,6 +128,35 @@ export const studioRouter = router({
           return databaseFailure(error);
         }
       }),
+    applyPatch: protectedProcedure
+      .input(
+        z.object({
+          artifactId: projectId,
+          baseVersion: z.number().int().positive(),
+          summary: z.string().trim().min(1).max(320),
+          patches: z.array(z.object({ start: z.number().int().min(0), end: z.number().int().min(0), replacement: z.string().max(200_000) })).min(1).max(100),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        try {
+          const artifact = await db.getArtifact(ctx.user.id, input.artifactId);
+          if (!artifact) throw new TRPCError({ code: "NOT_FOUND", message: "Artefato não encontrado." });
+          if (artifact.version !== input.baseVersion) {
+            throw new TRPCError({ code: "CONFLICT", message: "O artefato foi atualizado; recarregue antes de aplicar a alteração." });
+          }
+          const content = applyTextPatches(artifact.content, input.patches);
+          return await db.updateArtifact(ctx.user.id, {
+            artifactId: input.artifactId,
+            content,
+            summary: input.summary,
+            patchJson: JSON.stringify(input.patches),
+            operation: "edit",
+          });
+        } catch (error) {
+          if (error instanceof TRPCError) throw error;
+          return databaseFailure(error);
+        }
+      }),
     restore: protectedProcedure
       .input(z.object({ artifactId: projectId, version: z.number().int().positive() }))
       .mutation(async ({ ctx, input }) => {
@@ -140,6 +170,22 @@ export const studioRouter = router({
             summary: `Restauração da versão ${version.version}`,
             operation: "restore",
           });
+        } catch (error) {
+          if (error instanceof TRPCError) throw error;
+          return databaseFailure(error);
+        }
+      }),
+    diff: protectedProcedure
+      .input(z.object({ artifactId: projectId, beforeVersion: z.number().int().positive(), afterVersion: z.number().int().positive() }))
+      .query(async ({ ctx, input }) => {
+        try {
+          const artifact = await db.getArtifact(ctx.user.id, input.artifactId);
+          if (!artifact) throw new TRPCError({ code: "NOT_FOUND", message: "Artefato não encontrado." });
+          const versions = await db.listArtifactVersions(ctx.user.id, input.artifactId);
+          const before = versions.find(version => version.version === input.beforeVersion);
+          const after = versions.find(version => version.version === input.afterVersion);
+          if (!before || !after) throw new TRPCError({ code: "NOT_FOUND", message: "Uma das versões não foi encontrada." });
+          return { beforeVersion: before.version, afterVersion: after.version, lines: lineDiff(before.content, after.content) };
         } catch (error) {
           if (error instanceof TRPCError) throw error;
           return databaseFailure(error);

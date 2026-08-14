@@ -175,6 +175,16 @@ export async function getArtifact(ownerId: number, artifactId: string) {
   return rows[0];
 }
 
+export async function getArtifactByProjectPath(ownerId: number, projectId: string, filePath: string) {
+  const db = requireDatabase(await getDb());
+  const rows = await db
+    .select()
+    .from(artifacts)
+    .where(and(eq(artifacts.ownerId, ownerId), eq(artifacts.projectId, projectId), eq(artifacts.filePath, filePath)))
+    .limit(1);
+  return rows[0];
+}
+
 export async function createArtifact(
   ownerId: number,
   input: {
@@ -257,6 +267,34 @@ export async function updateArtifact(
     patchJson: input.patchJson || null,
   });
   return getArtifact(ownerId, artifact.id);
+}
+
+export async function upsertExtractedArtifact(
+  ownerId: number,
+  input: {
+    projectId: string;
+    conversationId: string;
+    title: string;
+    filePath: string;
+    language: string;
+    kind: "code" | "html";
+    content: string;
+    previewMode: "none" | "html" | "react";
+  }
+) {
+  const existing = await getArtifactByProjectPath(ownerId, input.projectId, input.filePath);
+  if (!existing) {
+    const artifact = await createArtifact(ownerId, { ...input, summary: "Artefato criado pela resposta do agente" });
+    return { artifact, action: "created" as const };
+  }
+  if (existing.content === input.content) return { artifact: existing, action: "unchanged" as const };
+  const artifact = await updateArtifact(ownerId, {
+    artifactId: existing.id,
+    content: input.content,
+    summary: "Artefato atualizado pela resposta do agente",
+    operation: "edit",
+  });
+  return { artifact, action: "updated" as const };
 }
 
 export async function createAgentRun(ownerId: number, input: { projectId: string; conversationId: string }) {

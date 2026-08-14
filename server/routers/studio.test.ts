@@ -98,4 +98,35 @@ describe("studio router", () => {
       conversationId: "conversation-of-another-project",
     }));
   });
+
+  it("aplica edição incremental apenas quando a versão-base confere", async () => {
+    databaseMock.getArtifact.mockResolvedValue({ id: "artifact-lunex-001", ownerId: 71, version: 2, content: "const theme = 'light';" });
+    databaseMock.updateArtifact.mockResolvedValue({ id: "artifact-lunex-001", version: 3 });
+    const caller = appRouter.createCaller(contextFor(71));
+
+    await caller.studio.artifacts.applyPatch({
+      artifactId: "artifact-lunex-001",
+      baseVersion: 2,
+      summary: "Alterar o tema padrão",
+      patches: [{ start: 14, end: 21, replacement: "'dark'" }],
+    });
+
+    expect(databaseMock.updateArtifact).toHaveBeenCalledWith(71, expect.objectContaining({
+      artifactId: "artifact-lunex-001",
+      content: "const theme = 'dark';",
+      operation: "edit",
+    }));
+  });
+
+  it("rejeita edição incremental com versão-base desatualizada", async () => {
+    databaseMock.getArtifact.mockResolvedValue({ id: "artifact-lunex-001", ownerId: 71, version: 4, content: "conteúdo atual" });
+    const caller = appRouter.createCaller(contextFor(71));
+
+    await expect(caller.studio.artifacts.applyPatch({
+      artifactId: "artifact-lunex-001",
+      baseVersion: 3,
+      summary: "Tentativa desatualizada",
+      patches: [{ start: 0, end: 0, replacement: "// " }],
+    })).rejects.toMatchObject({ code: "CONFLICT" });
+  });
 });
